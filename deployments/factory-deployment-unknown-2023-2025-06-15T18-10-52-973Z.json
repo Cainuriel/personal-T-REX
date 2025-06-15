@@ -1,0 +1,33 @@
+{
+  "network": {
+    "chainId": 2023,
+    "name": "unknown"
+  },
+  "deploymentMethod": "factory",
+  "timestamp": "2025-06-15T18:10:52.973Z",
+  "deployer": "0x542dD28258357Cc0a4d3EdC4F6eDA03d93106744",
+  "tokenOwner": "0x542dD28258357Cc0a4d3EdC4F6eDA03d93106744",
+  "agent": "0x542dD28258357Cc0a4d3EdC4F6eDA03d93106744",
+  "salt": "TREX_1750011040042",
+  "core": {
+    "token": "0x4348B73043Fc32e062A735E30456Eb07bB6F34f1",
+    "identityRegistry": "0xA6Aa64c3421fF3FF66C6BAAE420B6E012Cc2953f",
+    "compliance": "0xB19668212ED530DAd1F7226C24410e0D0A01854A",
+    "identityRegistryStorage": "0x292495731B43cE2A8E94Bc13A5E1791418AB03bb",
+    "claimTopicsRegistry": "0xAA80238156BF548f66c23F6c44865E52E5fE0ADB",
+    "trustedIssuersRegistry": "0xB74445c98E561845632B2Ab7617eB5240173D764"
+  },
+  "infrastructure": {
+    "trexFactory": "0x97F1d03d78e015dc8a982384f4216e3F73E8aC8c",
+    "trexImplementationAuthority": "0x4c0D147FAB14dEc0a3b273Ec5E0eE8f64F772D6E",
+    "identityFactory": "0x098BB57E7Ef83AE4Afc3F6B54907953278b35E05"
+  },
+  "implementations": {
+    "tokenImplementation": "0xa4682dbb8175340Ade550d055C4726Aa4783aC96",
+    "claimTopicsRegistryImplementation": "0xBb77a7252708152891D62356B3469fC4916aD312",
+    "trustedIssuersRegistryImplementation": "0xbb1CdbD056FAEAB354b08a445cB582892AAa9629",
+    "identityRegistryStorageImplementation": "0x431bBBa9b2e9385a404FE7E7DAD9BB08aAD60718",
+    "identityRegistryImplementation": "0x33738537b743A9aD4f645C215b2D0e3EC9dA4604",
+    "modularComplianceImplementation": "0xeE2e9D3517a0b1A70E02b642854f547715Cf2F4e"
+  }
+}

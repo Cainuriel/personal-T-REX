@@ -1,0 +1,22 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Deploy T-REX Suite",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"hardhat",
+				"run",
+				"scripts/deploy-simple.js",
+				"--network",
+				"localhost"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"isBackground": false
+		}
+	]
+}

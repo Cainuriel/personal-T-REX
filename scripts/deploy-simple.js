@@ -17,14 +17,6 @@ async function main() {
   console.log('🚀 Iniciando despliegue SIMPLE de ERC-3643 T-REX Suite...');
   console.log('🏭 Método: TREXFactory (Una sola transacción)\n');
   
-  // Debug de variables de entorno
-  console.log('🔍 Debug - Variables de entorno:');
-  const privateKey = process.env.ADMIN_WALLET_PRIV_KEY;
-  console.log('   ADMIN_WALLET_PRIV_KEY configurada:', privateKey ? 'SÍ' : 'NO');
-  if (privateKey) {
-    console.log('   Longitud de clave privada:', privateKey.length, 'caracteres');
-    console.log('   Formato correcto (0x...):', privateKey.startsWith('0x') ? 'SÍ' : 'NO');
-  }
   
   // Obtener network info
   const network = await ethers.provider.getNetwork();

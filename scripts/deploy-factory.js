@@ -251,7 +251,7 @@ async function deployIdentityFactory(deployer) {
     OnchainID.contracts.Factory.abi, 
     OnchainID.contracts.Factory.bytecode, 
     deployer,
-  ).deploy(identityImplementationAuthority.address, deployer.address);
+  ).deploy(identityImplementationAuthority.address);
 
   console.log('   ✅ Factory de identidades desplegado');
   

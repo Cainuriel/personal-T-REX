@@ -30,6 +30,8 @@
     "deploy:manual": "hardhat run scripts/deploy.js", 
     "verify": "hardhat run scripts/verify-deployment.js",
     "example": "hardhat run scripts/example-usage.js",
+    "example:factory": "cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js",
+    "example:manual": "cross-env DEPLOYMENT_TYPE=manual hardhat run scripts/example-usage.js",
     "prepare": "husky install"
   },
   "repository": {
@@ -41,8 +43,7 @@
   "bugs": {
     "url": "https://github.com/TokenySolutions/T-REX/issues"
   },
-  "homepage": "https://github.com/TokenySolutions/T-REX#README",
-  "devDependencies": {
+  "homepage": "https://github.com/TokenySolutions/T-REX#README",  "devDependencies": {
     "@commitlint/cli": "^17.6.1",
     "@dotenvx/dotenvx": "^1.44.2",
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
@@ -55,6 +56,7 @@
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
     "@xyrusworx/hardhat-solidity-json": "^1.0.2",
+    "cross-env": "^7.0.3",
     "eslint": "^8.39.0",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-config-prettier": "^8.8.0",

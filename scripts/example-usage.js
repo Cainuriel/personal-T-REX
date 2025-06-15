@@ -43,31 +43,55 @@ const path = require('path');
  * - Ejecutar primero: npm run deploy:simple o npm run deploy:manual
  * - Tener al menos 5 cuentas disponibles en la red
  * - Contratos desplegados y funcionales
- * 
- * CÓMO USARLO:
+ * * CÓMO USARLO:
  * ============
- * npm run example -- --network taycan
+ * # Usar deployment específico con variables de entorno:
+ * DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network taycan
+ * DEPLOYMENT_TYPE=manual npx hardhat run scripts/example-usage.js --network taycan
+ * 
+ * # Usar cualquier deployment disponible (comportamiento anterior):
+ * npx hardhat run scripts/example-usage.js --network taycan
+ * 
+ * VARIABLES DE ENTORNO:
+ * - DEPLOYMENT_TYPE: Especifica qué tipo de deployment usar (factory o manual)
+ *   Si no se especifica, intentará encontrar cualquiera disponible
+ *   
+ * EJEMPLOS COMPLETOS:
+ * - DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network taycan
+ * - DEPLOYMENT_TYPE=manual npx hardhat run scripts/example-usage.js --network taycan
+ * 
+ * EN WINDOWS (PowerShell):
+ * - $env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network taycan
+ * - $env:DEPLOYMENT_TYPE="manual"; npx hardhat run scripts/example-usage.js --network taycan
  */
 
 async function main() {
   console.log('🚀 INICIANDO CONFIGURACIÓN Y USO DE T-REX SUITE');
   console.log('='.repeat(60));
+    // 📁 PASO 0: Obtener parámetros y cargar contratos
+  const deploymentType = getDeploymentTypeFromEnv();
+  console.log(`📁 Tipo de deployment solicitado: ${deploymentType || 'automático'}`);
+    console.log('📁 Cargando contratos desde deployments...');
+  const result = await loadContractsFromDeployments(deploymentType);
   
-  // 📁 PASO 0: Cargar direcciones de contratos desde deployments
-  console.log('📁 Cargando contratos desde deployments...');
-  const contracts = await loadContractsFromDeployments();
-  
-  if (!contracts) {
-    console.log('❌ No se encontraron despliegues. Ejecuta primero:');
-    console.log('   npm run deploy:simple -- --network taycan');
-    console.log('   o npm run deploy:manual -- --network taycan');
-    return;
+  if (!result) {
+    console.log('❌ No se encontraron despliegues del tipo especificado.');
+    if (deploymentType) {
+      console.log(`   Tipo solicitado: ${deploymentType}`);
+      console.log('   Tipos disponibles: factory, manual');
+    }
+    console.log('   Ejecuta primero:');
+    console.log('   npm run deploy:simple -- --network taycan  (para factory)');
+    console.log('   o npm run deploy:manual -- --network taycan  (para manual)');    return;
   }
   
+  const { contracts, source: deploymentSource } = result;
+  
   console.log('✅ Contratos cargados exitosamente');
-  console.log(`   Token: ${contracts.token.address}`);
-  console.log(`   Identity Registry: ${contracts.identityRegistry.address}`);
-  console.log(`   Trusted Issuers: ${contracts.trustedIssuersRegistry.address}`);  // 👥 Configurar roles y cuentas basado en el deployment
+  console.log(`   📄 Deployment: ${deploymentSource}`);
+  console.log(`   🪙 Token: ${contracts.token.address}`);
+  console.log(`   🆔 Identity Registry: ${contracts.identityRegistry.address}`);
+  console.log(`   🏛️  Trusted Issuers: ${contracts.trustedIssuersRegistry.address}`);// 👥 Configurar roles y cuentas basado en el deployment
   const signers = await ethers.getSigners();
   if (signers.length < 1) {
     console.log('❌ Se necesita al menos 1 cuenta para el ejemplo');
@@ -159,45 +183,75 @@ async function getDeploymentData() {
 
 /**
  * Carga las direcciones de contratos desde los archivos JSON de deployments
+ * @param {string} preferredType - Tipo de deployment preferido: 'factory' o 'manual'
  */
-async function loadContractsFromDeployments() {
+async function loadContractsFromDeployments(preferredType = null) {
   const deploymentsDir = path.join(__dirname, '..', 'deployments');
   const factoryLatestPath = path.join(deploymentsDir, 'factory-deployment-latest.json');
   const manualLatestPath = path.join(deploymentsDir, 'manual-deployment-latest.json');
   
   let deploymentData = null;
+  let deploymentSource = null;
   
   // Get current network to match chain ID
   const network = await ethers.provider.getNetwork();
   
-  // Check both deployments and prefer the one that matches current network
-  let factoryData = null;
-  let manualData = null;
-  
-  if (fs.existsSync(factoryLatestPath)) {
-    factoryData = JSON.parse(fs.readFileSync(factoryLatestPath, 'utf8'));
-  }
-  
-  if (fs.existsSync(manualLatestPath)) {
-    manualData = JSON.parse(fs.readFileSync(manualLatestPath, 'utf8'));
-  }
-  
-  // Prefer deployment that matches current network chain ID
-  if (factoryData && factoryData.network?.chainId === network.chainId) {
-    deploymentData = factoryData;
-    console.log('   📁 Usando: factory-deployment-latest.json (coincide chain ID)');
-  } else if (manualData && manualData.network?.chainId === network.chainId) {
-    deploymentData = manualData;
-    console.log('   📁 Usando: manual-deployment-latest.json (coincide chain ID)');
-  } else if (factoryData) {
-    deploymentData = factoryData;
-    console.log('   📁 Usando: factory-deployment-latest.json (fallback)');
-  } else if (manualData) {
-    deploymentData = manualData;
-    console.log('   📁 Usando: manual-deployment-latest.json (fallback)');
+  // Si se especificó un tipo preferido, intentar usarlo primero
+  if (preferredType) {
+    if (preferredType === 'factory' && fs.existsSync(factoryLatestPath)) {
+      const factoryData = JSON.parse(fs.readFileSync(factoryLatestPath, 'utf8'));
+      if (!factoryData.network?.chainId || factoryData.network.chainId === network.chainId) {
+        deploymentData = factoryData;
+        deploymentSource = 'factory-deployment-latest.json (especificado)';
+      } else {
+        console.log(`⚠️  Factory deployment encontrado pero con chain ID diferente: ${factoryData.network?.chainId} vs ${network.chainId}`);
+      }
+    } else if (preferredType === 'manual' && fs.existsSync(manualLatestPath)) {
+      const manualData = JSON.parse(fs.readFileSync(manualLatestPath, 'utf8'));
+      if (!manualData.network?.chainId || manualData.network.chainId === network.chainId) {
+        deploymentData = manualData;
+        deploymentSource = 'manual-deployment-latest.json (especificado)';
+      } else {
+        console.log(`⚠️  Manual deployment encontrado pero con chain ID diferente: ${manualData.network?.chainId} vs ${network.chainId}`);
+      }
+    }
+    
+    // Si no se encontró el tipo preferido, mostrar error
+    if (!deploymentData) {
+      console.log(`❌ No se encontró deployment del tipo '${preferredType}' compatible con la red actual`);
+      return null;
+    }
   } else {
-    return null;
-  }
+    // Lógica original: buscar cualquier deployment compatible
+    let factoryData = null;
+    let manualData = null;
+    
+    if (fs.existsSync(factoryLatestPath)) {
+      factoryData = JSON.parse(fs.readFileSync(factoryLatestPath, 'utf8'));
+    }
+    
+    if (fs.existsSync(manualLatestPath)) {
+      manualData = JSON.parse(fs.readFileSync(manualLatestPath, 'utf8'));
+    }
+    
+    // Prefer deployment that matches current network chain ID
+    if (factoryData && factoryData.network?.chainId === network.chainId) {
+      deploymentData = factoryData;
+      deploymentSource = 'factory-deployment-latest.json (coincide chain ID)';
+    } else if (manualData && manualData.network?.chainId === network.chainId) {
+      deploymentData = manualData;
+      deploymentSource = 'manual-deployment-latest.json (coincide chain ID)';
+    } else if (factoryData) {
+      deploymentData = factoryData;
+      deploymentSource = 'factory-deployment-latest.json (fallback)';
+    } else if (manualData) {
+      deploymentData = manualData;
+      deploymentSource = 'manual-deployment-latest.json (fallback)';
+    } else {
+      return null;
+    }
+  }  
+  console.log(`   📁 Usando: ${deploymentSource}`);
   
   // Conectar a los contratos
   const contracts = {
@@ -209,7 +263,10 @@ async function loadContractsFromDeployments() {
     identityRegistryStorage: await ethers.getContractAt('IdentityRegistryStorage', deploymentData.core.identityRegistryStorage)
   };
   
-  return contracts;
+  return {
+    contracts,
+    source: deploymentSource
+  };
 }
 
 /**
@@ -482,7 +539,48 @@ async function showFinalStatus(contracts) {
   }
 }
 
+/**
+ * Obtiene el tipo de deployment desde las variables de entorno
+ */
+function getDeploymentTypeFromEnv() {
+  const deploymentType = process.env.DEPLOYMENT_TYPE;
+  
+  if (deploymentType) {
+    const normalizedType = deploymentType.toLowerCase();
+    if (normalizedType === 'factory' || normalizedType === 'manual') {
+      return normalizedType;
+    } else {      console.log(`⚠️  Tipo de deployment inválido: ${deploymentType}`);
+      console.log('   Tipos válidos: factory, manual');
+      console.log('   Ejemplo: DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network taycan');
+      return null;
+    }
+  }
+  
+  return null; // No se especificó tipo
+}
+
 // Agregar comando npm al package.json
+// 
+// EJEMPLOS DE USO:
+// ================
+// 
+// 1. Usar deployment factory específicamente:
+//    DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network taycan
+// 
+// 2. Usar deployment manual específicamente:
+//    DEPLOYMENT_TYPE=manual npx hardhat run scripts/example-usage.js --network taycan
+// 
+// 3. Usar cualquier deployment disponible (automático):
+//    npx hardhat run scripts/example-usage.js --network taycan
+// 
+// 4. En Windows PowerShell:
+//    $env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network taycan
+//    $env:DEPLOYMENT_TYPE="manual"; npx hardhat run scripts/example-usage.js --network taycan
+// 
+// 5. Con archivo .env (crear .env en la raíz del proyecto):
+//    echo "DEPLOYMENT_TYPE=factory" > .env
+//    npx hardhat run scripts/example-usage.js --network taycan
+
 main()
   .then(() => process.exit(0))
   .catch((error) => {

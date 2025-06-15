@@ -75,4 +75,5 @@ This project is licensed under the [GNU General Public License v3.0](./LICENSE.m
 deactive husky
 ``` git config core.hooksPath /dev/null ```
 active
+``` git config --unset core.hooksPath ```
 ----

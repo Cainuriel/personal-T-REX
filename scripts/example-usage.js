@@ -68,7 +68,10 @@ const path = require('path');
 async function main() {
   console.log('🚀 INICIANDO CONFIGURACIÓN Y USO DE T-REX SUITE');
   console.log('='.repeat(60));
-    // 📁 PASO 0: Obtener parámetros y cargar contratos
+  
+  // 🌐 PASO 0.1: Verificar conectividad de red
+  await checkNetworkConnectivity();
+    // 📁 PASO 0.2: Obtener parámetros y cargar contratos
   const deploymentType = getDeploymentTypeFromEnv();
   console.log(`📁 Tipo de deployment solicitado: ${deploymentType || 'automático'}`);
     console.log('📁 Cargando contratos desde deployments...');
@@ -83,15 +86,19 @@ async function main() {
     console.log('   Ejecuta primero:');
     console.log('   npm run deploy:simple -- --network taycan  (para factory)');
     console.log('   o npm run deploy:manual -- --network taycan  (para manual)');    return;
-  }
-  
+  }  
   const { contracts, source: deploymentSource } = result;
   
   console.log('✅ Contratos cargados exitosamente');
   console.log(`   📄 Deployment: ${deploymentSource}`);
   console.log(`   🪙 Token: ${contracts.token.address}`);
   console.log(`   🆔 Identity Registry: ${contracts.identityRegistry.address}`);
-  console.log(`   🏛️  Trusted Issuers: ${contracts.trustedIssuersRegistry.address}`);// 👥 Configurar roles y cuentas basado en el deployment
+  console.log(`   🏛️  Trusted Issuers: ${contracts.trustedIssuersRegistry.address}`);
+  
+  // 🔍 Verificar accesibilidad de contratos
+  await verifyContractsAccessibility(contracts);
+  
+  // 👥 Configurar roles y cuentas basado en el deployment
   const signers = await ethers.getSigners();
   if (signers.length < 1) {
     console.log('❌ Se necesita al menos 1 cuenta para el ejemplo');
@@ -273,15 +280,24 @@ async function loadContractsFromDeployments(preferredType = null) {
  * PASO 1: Configurar trusted issuers para certificar claims
  */
 async function configureTrustedIssuers(contracts, tokenOwner, claimIssuer) {
-  console.log('\n🏛️  PASO 1: CONFIGURANDO TRUSTED ISSUERS');
-  console.log('-'.repeat(50));
+  console.log('\n🏛️  PASO 1: CONFIGURANDO TRUSTED ISSUERS');  console.log('-'.repeat(50));
   
   try {
+    console.log(`🏛️  Agregando trusted issuer: ${claimIssuer.address}`);
+    console.log('   📋 Tópicos de claims: [1: KYC, 2: Acreditado]');
+    
     // Agregar claim issuer para tópicos KYC (1) y Acreditado (2)
-    await contracts.trustedIssuersRegistry.connect(tokenOwner).addTrustedIssuer(
+    console.log('   🔄 Enviando transacción...');
+    const addIssuerTx = await contracts.trustedIssuersRegistry.connect(tokenOwner).addTrustedIssuer(
       claimIssuer.address, 
       [1, 2] // KYC y Acreditado
     );
+    
+    console.log(`   📝 Transacción enviada: ${addIssuerTx.hash}`);
+    console.log('   ⏳ Esperando confirmación...');
+    
+    const receipt = await addIssuerTx.wait();
+    console.log(`   ✅ Confirmado en bloque: ${receipt.blockNumber}`);
     
     console.log(`✅ Trusted issuer agregado: ${claimIssuer.address}`);
     console.log('   📋 Autorizado para claims:');
@@ -290,6 +306,7 @@ async function configureTrustedIssuers(contracts, tokenOwner, claimIssuer) {
     
   } catch (error) {
     console.error('❌ Error configurando trusted issuers:', error.message);
+    console.error('📋 Detalles del error:', error);
     throw error;
   }
 }
@@ -302,33 +319,102 @@ async function setupAgentRole(contracts, tokenOwner) {
   console.log('-'.repeat(50));
   
   try {
+    console.log(`👤 Configurando roles para: ${tokenOwner.address}`);
+    
     // Verificar y configurar rol de Agent en el TOKEN
-    console.log('🔐 Configurando rol de Agent en TOKEN...');
-    const isTokenAgent = await contracts.token.isAgent(tokenOwner.address);
+    console.log('🔐 Verificando rol de Agent en TOKEN...');
+    let isTokenAgent = false;
+    
+    try {
+      isTokenAgent = await contracts.token.isAgent(tokenOwner.address);
+      console.log(`   📋 Estado actual en Token: ${isTokenAgent ? 'SÍ es Agent' : 'NO es Agent'}`);
+    } catch (error) {
+      console.log(`   ⚠️  Error verificando rol en Token: ${error.message}`);
+      console.log('   🔄 Continuando con intento de asignación...');
+    }
     
     if (!isTokenAgent) {
-      const tokenAgentTx = await contracts.token.connect(tokenOwner).addAgent(tokenOwner.address);
-      await tokenAgentTx.wait();
-      console.log('   ✅ Rol de Agent agregado en Token');
+      console.log('   🔄 Agregando rol de Agent en Token...');
+      try {
+        const tokenAgentTx = await contracts.token.connect(tokenOwner).addAgent(tokenOwner.address);
+        console.log(`   📝 Transacción enviada: ${tokenAgentTx.hash}`);
+        console.log('   ⏳ Esperando confirmación...');
+        
+        const receipt = await tokenAgentTx.wait();
+        console.log(`   ✅ Confirmado en bloque: ${receipt.blockNumber}`);
+        console.log('   ✅ Rol de Agent agregado en Token');
+      } catch (agentError) {
+        console.log(`   ❌ Error agregando Agent en Token: ${agentError.message}`);
+        // Verificar si ya era Agent (posible condición de carrera)
+        const recheckAgent = await contracts.token.isAgent(tokenOwner.address);
+        if (recheckAgent) {
+          console.log('   ✅ Verificación: Ya es Agent en Token (posible condición de carrera)');
+          isTokenAgent = true;
+        } else {
+          throw agentError;
+        }
+      }
     } else {
       console.log('   ✅ Ya tiene rol de Agent en Token');
     }
     
     // Verificar y configurar rol de Agent en el IDENTITY REGISTRY
-    console.log('🔐 Configurando rol de Agent en IDENTITY REGISTRY...');
-    const isIRAgent = await contracts.identityRegistry.isAgent(tokenOwner.address);
+    console.log('🔐 Verificando rol de Agent en IDENTITY REGISTRY...');
+    let isIRAgent = false;
+    
+    try {
+      isIRAgent = await contracts.identityRegistry.isAgent(tokenOwner.address);
+      console.log(`   📋 Estado actual en Identity Registry: ${isIRAgent ? 'SÍ es Agent' : 'NO es Agent'}`);
+    } catch (error) {
+      console.log(`   ⚠️  Error verificando rol en Identity Registry: ${error.message}`);
+      console.log('   🔄 Continuando con intento de asignación...');
+    }
     
     if (!isIRAgent) {
-      const irAgentTx = await contracts.identityRegistry.connect(tokenOwner).addAgent(tokenOwner.address);
-      await irAgentTx.wait();
-      console.log('   ✅ Rol de Agent agregado en Identity Registry');
+      console.log('   🔄 Agregando rol de Agent en Identity Registry...');
+      try {
+        const irAgentTx = await contracts.identityRegistry.connect(tokenOwner).addAgent(tokenOwner.address);
+        console.log(`   📝 Transacción enviada: ${irAgentTx.hash}`);
+        console.log('   ⏳ Esperando confirmación...');
+        
+        const receipt = await irAgentTx.wait();
+        console.log(`   ✅ Confirmado en bloque: ${receipt.blockNumber}`);
+        console.log('   ✅ Rol de Agent agregado en Identity Registry');
+      } catch (agentError) {
+        console.log(`   ❌ Error agregando Agent en Identity Registry: ${agentError.message}`);
+        // Verificar si ya era Agent (posible condición de carrera)
+        const recheckAgent = await contracts.identityRegistry.isAgent(tokenOwner.address);
+        if (recheckAgent) {
+          console.log('   ✅ Verificación: Ya es Agent en Identity Registry (posible condición de carrera)');
+          isIRAgent = true;
+        } else {
+          throw agentError;
+        }
+      }
     } else {
       console.log('   ✅ Ya tiene rol de Agent en Identity Registry');
     }
     
-    // Verificación final
-    const finalTokenAgent = await contracts.token.isAgent(tokenOwner.address);
-    const finalIRAgent = await contracts.identityRegistry.isAgent(tokenOwner.address);
+    // Verificación final con reintentos
+    console.log('🔍 Verificación final de roles...');
+    let finalTokenAgent = false;
+    let finalIRAgent = false;
+    
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`   🔄 Intento ${attempt}/3 de verificación...`);
+        finalTokenAgent = await contracts.token.isAgent(tokenOwner.address);
+        finalIRAgent = await contracts.identityRegistry.isAgent(tokenOwner.address);
+        break;
+      } catch (error) {
+        console.log(`   ⚠️  Error en intento ${attempt}: ${error.message}`);
+        if (attempt === 3) {
+          throw new Error(`No se pudo verificar roles después de 3 intentos: ${error.message}`);
+        }
+        console.log('   ⏳ Esperando 2 segundos antes del siguiente intento...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
     
     console.log(`✅ Configuración final de roles:`);
     console.log(`   👤 Cuenta: ${tokenOwner.address}`);
@@ -339,8 +425,11 @@ async function setupAgentRole(contracts, tokenOwner) {
       throw new Error('No se pudieron configurar todos los roles de Agent necesarios');
     }
     
+    console.log('🎉 ¡Roles de Agent configurados exitosamente!');
+    
   } catch (error) {
     console.error('❌ Error configurando rol de Agent:', error.message);
+    console.error('📋 Detalles del error:', error);
     throw error;
   }
 }
@@ -559,6 +648,57 @@ function getDeploymentTypeFromEnv() {
   return null; // No se especificó tipo
 }
 
+/**
+ * Función de utilidad para verificar conectividad con la red
+ */
+async function checkNetworkConnectivity() {
+  console.log('🌐 Verificando conectividad con la red...');
+  try {
+    const network = await ethers.provider.getNetwork();
+    const blockNumber = await ethers.provider.getBlockNumber();
+    const gasPrice = await ethers.provider.getGasPrice();
+    
+    console.log(`   ✅ Red conectada: ${network.name || 'Unknown'} (Chain ID: ${network.chainId})`);
+    console.log(`   📦 Último bloque: ${blockNumber}`);
+    console.log(`   ⛽ Gas price: ${ethers.utils.formatUnits(gasPrice, 'gwei')} gwei`);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Error de conectividad:', error.message);
+    throw new Error(`No se puede conectar a la red blockchain: ${error.message}`);
+  }
+}
+
+/**
+ * Función para verificar que los contratos estén accesibles
+ */
+async function verifyContractsAccessibility(contracts) {
+  console.log('🔍 Verificando accesibilidad de contratos...');
+  
+  const contractTests = [
+    { name: 'Token', contract: contracts.token, method: 'name' },
+    { name: 'Identity Registry', contract: contracts.identityRegistry, method: 'isVerified', args: [ethers.constants.AddressZero] },
+    { name: 'Trusted Issuers Registry', contract: contracts.trustedIssuersRegistry, method: 'isTrustedIssuer', args: [ethers.constants.AddressZero] }
+  ];
+  
+  for (const test of contractTests) {
+    try {
+      console.log(`   🔄 Verificando ${test.name}...`);
+      if (test.args) {
+        await test.contract[test.method](...test.args);
+      } else {
+        await test.contract[test.method]();
+      }
+      console.log(`   ✅ ${test.name} accesible`);
+    } catch (error) {
+      console.error(`   ❌ Error accediendo a ${test.name}: ${error.message}`);
+      throw new Error(`Contrato ${test.name} no accesible: ${error.message}`);
+    }
+  }
+  
+  console.log('✅ Todos los contratos son accesibles');
+}
+
 // Agregar comando npm al package.json
 // 
 // EJEMPLOS DE USO:
@@ -581,9 +721,25 @@ function getDeploymentTypeFromEnv() {
 //    echo "DEPLOYMENT_TYPE=factory" > .env
 //    npx hardhat run scripts/example-usage.js --network taycan
 
-main()
-  .then(() => process.exit(0))
+// Configurar timeout global para evitar que el script se cuelgue
+const GLOBAL_TIMEOUT = 10 * 60 * 1000; // 10 minutos
+
+const mainWithTimeout = async () => {
+  return Promise.race([
+    main(),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Script timeout - 10 minutos excedidos')), GLOBAL_TIMEOUT)
+    )
+  ]);
+};
+
+mainWithTimeout()
+  .then(() => {
+    console.log('\n🎉 ¡Script completado exitosamente!');
+    process.exit(0);
+  })
   .catch((error) => {
-    console.error(error);
+    console.error('\n💥 Error fatal:', error.message);
+    console.error('📋 Stack trace:', error.stack);
     process.exit(1);
   });

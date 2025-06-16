@@ -1,11 +1,11 @@
 # 📁 Scripts de T-REX Suite
 
-Esta carpeta contiene los scripts esenciales para trabajar con T-REX Suite en la red Alastria.
+Esta carpeta contiene los scripts esenciales para trabajar con T-REX Suite en la red que despliegues.
 
 ## 🚀 Scripts Principales
 
 ### **`example-usage.js`** - 🎯 SCRIPT PRINCIPAL
-**Uso:** `DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network alastria`
+**Uso:** `DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>`
 
 Demuestra el flujo completo de T-REX después del despliegue:
 - ✅ Configuración de trusted issuers
@@ -24,12 +24,12 @@ Demuestra el flujo completo de T-REX después del despliegue:
 ## 🏗️ Scripts de Despliegue
 
 ### **`deploy-simple.js`** - Despliegue usando Factory
-**Uso:** `npx hardhat run scripts/deploy-simple.js --network alastria`
+**Uso:** `npx hardhat run scripts/deploy-simple.js --network <YOUR_CUSTOM_NETWORK>`
 
 Despliegue rápido usando TREXFactory en una sola transacción.
 
 ### **`deploy.js`** - Despliegue Manual
-**Uso:** `npx hardhat run scripts/deploy.js --network alastria`
+**Uso:** `npx hardhat run scripts/deploy.js --network <YOUR_CUSTOM_NETWORK>`
 
 Despliegue paso a paso más robusto cuando el factory no funciona.
 
@@ -38,7 +38,7 @@ Despliegue paso a paso más robusto cuando el factory no funciona.
 ## 🔍 Scripts de Diagnóstico
 
 ### **`diagnosis.js`** - Diagnóstico General
-**Uso:** `DEPLOYMENT_TYPE=factory npx hardhat run scripts/diagnosis.js --network alastria`
+**Uso:** `DEPLOYMENT_TYPE=factory npx hardhat run scripts/diagnosis.js --network <YOUR_CUSTOM_NETWORK>`
 
 Verifica el estado completo de los contratos desplegados:
 - Estado de contratos y permisos
@@ -46,12 +46,12 @@ Verifica el estado completo de los contratos desplegados:
 - Diagnóstico de problemas comunes
 
 ### **`verify-deployment.js`** - Verificación de Deployment
-**Uso:** `npx hardhat run scripts/verify-deployment.js --network alastria`
+**Uso:** `npx hardhat run scripts/verify-deployment.js --network <YOUR_CUSTOM_NETWORK>`
 
 Verifica que un deployment esté correctamente configurado.
 
 ### **`check-permissions.js`** - Verificación de Permisos
-**Uso:** `npx hardhat run scripts/check-permissions.js --network alastria`
+**Uso:** `npx hardhat run scripts/check-permissions.js --network <YOUR_CUSTOM_NETWORK>`
 
 Verifica permisos específicos en contratos T-REX.
 
@@ -60,12 +60,12 @@ Verifica permisos específicos en contratos T-REX.
 ## 🛠️ Scripts de Mantenimiento
 
 ### **`clean-inconsistent-identity.js`** - Limpieza de Identidad Individual
-**Uso:** `TARGET_ADDRESS=0x... npx hardhat run scripts/clean-inconsistent-identity.js --network alastria`
+**Uso:** `TARGET_ADDRESS=0x... npx hardhat run scripts/clean-inconsistent-identity.js --network <YOUR_CUSTOM_NETWORK>`
 
 Limpia identidades en estado inconsistente (registradas en storage pero no verificadas).
 
 ### **`cleanup-all-test-addresses.js`** - Limpieza Masiva
-**Uso:** `npx hardhat run scripts/cleanup-all-test-addresses.js --network alastria`
+**Uso:** `npx hardhat run scripts/cleanup-all-test-addresses.js --network <YOUR_CUSTOM_NETWORK>`
 
 Limpia todas las direcciones de prueba que estén en estado inconsistente.
 
@@ -74,12 +74,12 @@ Limpia todas las direcciones de prueba que estén en estado inconsistente.
 ## 🐛 Scripts de Debug
 
 ### **`debug-roles.js`** - Debug de Roles
-**Uso:** `npx hardhat run scripts/debug-roles.js --network alastria`
+**Uso:** `npx hardhat run scripts/debug-roles.js --network <YOUR_CUSTOM_NETWORK>`
 
 Debug específico de roles y permisos en contratos.
 
 ### **`debug-identity-status.js`** - Debug de Identidades
-**Uso:** `npx hardhat run scripts/debug-identity-status.js --network alastria`
+**Uso:** `npx hardhat run scripts/debug-identity-status.js --network <YOUR_CUSTOM_NETWORK>`
 
 Verifica el estado de identidades para todas las cuentas disponibles.
 
@@ -100,8 +100,8 @@ DEPLOYMENT_TYPE=factory
 
 ## 🌐 Redes Soportadas
 
-- **alastria** - Red principal de Alastria
-- **taycan** - Red de pruebas Taycan
+- **<YOUR_CUSTOM_NETWORK>** - Red principal de <YOUR_CUSTOM_NETWORK>
+- **<YOUR_CUSTOM_NETWORK>** - Red de pruebas <YOUR_CUSTOM_NETWORK>
 
 ## 📁 Archivos de Deployment
 
@@ -120,4 +120,4 @@ Los scripts generan/leen archivos JSON en `deployments/`:
 
 ---
 
-*Actualizado: Junio 2025 - Todos los scripts funcionan en red Alastria*
+*Actualizado: Junio 2025 - Todos los scripts funcionan en red <YOUR_CUSTOM_NETWORK>*

@@ -30,7 +30,8 @@ const config: HardhatUserConfig = {
     outputDir: "./docgen",
     freshOutput: true,
   },  
-
+  
+  
 };
 
 export default config;

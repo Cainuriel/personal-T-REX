@@ -33,9 +33,14 @@ const config: HardhatUserConfig = {
    
     taycan: {
       url: "http://5.250.188.118:8545",
-      accounts: process.env.ADMIN_WALLET_PRIV_KEY ? [process.env.ADMIN_WALLET_PRIV_KEY] : [],
+      accounts: [
+        process.env.ADMIN_WALLET_PRIV_KEY,
+        process.env.INVESTOR1_PRIV_KEY,
+        process.env.INVESTOR2_PRIV_KEY
+      ].filter((key): key is string => !!key),
       timeout: 300000, 
-    }
+    },
+       
   },
 };
 

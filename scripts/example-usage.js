@@ -121,29 +121,49 @@ async function main() {
     console.log('   Para el ejemplo, intentaremos usar la cuenta principal disponible');
     
     tokenOwner = mainAccount;
-    claimIssuer = mainAccount;
-  } else {
+    claimIssuer = mainAccount;  } else {
     tokenOwner = mainAccount;
     claimIssuer = mainAccount;
-  }
-    // Crear "inversores" usando direcciones reales disponibles
-  const investor1 = {
-    address: '0x86DF4B738D592c31F4A9A657D6c8d6D05DC1D462', // Dirección adicional proporcionada
-    signer: mainAccount // Usar la cuenta principal para transacciones (como proxy)
-  };
-  const investor2 = {
-    address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8', // Hardhat address #1 como fallback
-    signer: mainAccount // Usar la cuenta principal para transacciones
-  };
+  }  
+  // Crear inversores usando los signers reales de las private keys
+  let investor1, investor2;
   
-  console.log('\n👥 ROLES CONFIGURADOS:');
+  if (signers.length >= 3) {
+    // Tenemos todas las cuentas disponibles
+    investor1 = signers[1]; // Segunda cuenta (INVESTOR1_PRIV_KEY)
+    investor2 = signers[2]; // Tercera cuenta (INVESTOR2_PRIV_KEY)
+    console.log('\n✅ Usando cuentas reales de inversores desde private keys');
+  } else {
+    // Fallback: usar la cuenta principal como proxy
+    console.log('\n⚠️  No se encontraron suficientes cuentas, usando cuenta principal como proxy');
+    investor1 = {
+      address: '0x86DF4B738D592c31F4A9A657D6c8d6D05DC1D462',
+      signer: mainAccount
+    };
+    investor2 = {
+      address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+      signer: mainAccount
+    };  }
+    console.log('\n👥 ROLES CONFIGURADOS:');
   console.log(`   Cuenta Principal (Owner/Issuer/Agent): ${mainAccount.address}`);
-  console.log(`   Investor 1: ${investor1.address} (gestionado por principal)`);
-  console.log(`   Investor 2: ${investor2.address} (gestionado por principal)`);
-  console.log('   ℹ️  Nota: Las transacciones se ejecutan desde la cuenta principal con permisos de Agent');
+  
+  if (investor1.address && investor1.signer) {
+    // Modo fallback con objetos
+    console.log(`   Investor 1: ${investor1.address} (gestionado por principal)`);
+    console.log(`   Investor 2: ${investor2.address} (gestionado por principal)`);
+    console.log('   ℹ️  Nota: Las transacciones se ejecutan desde la cuenta principal con permisos de Agent');
+  } else {
+    // Modo normal con signers reales
+    console.log(`   Investor 1: ${investor1.address} (cuenta independiente)`);
+    console.log(`   Investor 2: ${investor2.address} (cuenta independiente)`);
+    console.log('   ✅ Usando cuentas independientes para transferencias reales');
+  }
+  
+  // 🔐 Verificar permisos antes de proceder
+  await verifyPermissions(contracts, tokenOwner, tokenOwner);
     try {
     // PASO 1: Configurar trusted issuers
-    await configureTrustedIssuers(contracts, tokenOwner, claimIssuer);    // PASO 1.5: Configurar rol de Agent para poder registrar identidades
+    await configureTrustedIssuers(contracts, tokenOwner, claimIssuer);// PASO 1.5: Configurar rol de Agent para poder registrar identidades
     // Nota: Necesario cuando el deployer es owner pero no Agent
     await setupAgentRole(contracts, tokenOwner);
     
@@ -283,21 +303,61 @@ async function configureTrustedIssuers(contracts, tokenOwner, claimIssuer) {
   console.log('\n🏛️  PASO 1: CONFIGURANDO TRUSTED ISSUERS');  console.log('-'.repeat(50));
   
   try {
-    console.log(`🏛️  Agregando trusted issuer: ${claimIssuer.address}`);
-    console.log('   📋 Tópicos de claims: [1: KYC, 2: Acreditado]');
+    // Verificaciones previas específicas
+    console.log('🔍 Verificaciones previas...');
     
-    // Agregar claim issuer para tópicos KYC (1) y Acreditado (2)
-    console.log('   🔄 Enviando transacción...');
-    const addIssuerTx = await contracts.trustedIssuersRegistry.connect(tokenOwner).addTrustedIssuer(
+    // Verificar ownership del TrustedIssuersRegistry
+    const tiRegistryOwner = await contracts.trustedIssuersRegistry.owner();
+    console.log(`   👑 Owner del TrustedIssuersRegistry: ${tiRegistryOwner}`);
+    console.log(`   🔑 Cuenta ejecutora: ${tokenOwner.address}`);
+    
+    if (tiRegistryOwner.toLowerCase() !== tokenOwner.address.toLowerCase()) {
+      throw new Error(`Permisos insuficientes: Owner del TrustedIssuersRegistry es ${tiRegistryOwner}, pero se intenta ejecutar desde ${tokenOwner.address}`);
+    }
+    
+    // Verificar si el issuer ya está agregado
+    const isAlreadyTrusted = await contracts.trustedIssuersRegistry.isTrustedIssuer(claimIssuer.address);
+    if (isAlreadyTrusted) {
+      console.log(`   ℹ️  El issuer ${claimIssuer.address} ya es trusted issuer`);
+      console.log('✅ Configuración de trusted issuer ya completada');
+      return;
+    }
+      console.log(`🏛️  Agregando trusted issuer: ${claimIssuer.address}`);
+    console.log('   📋 Tópicos de claims: [1: KYC, 2: Acreditado]');
+      // Agregar claim issuer para tópicos KYC (1) y Acreditado (2)
+    console.log('   🔄 Estimando gas y enviando transacción...');
+    
+    // Estimar gas primero para evitar fallos
+    const gasEstimate = await contracts.trustedIssuersRegistry.connect(tokenOwner).estimateGas.addTrustedIssuer(
       claimIssuer.address, 
       [1, 2] // KYC y Acreditado
+    );
+    
+    console.log(`   ⛽ Gas estimado: ${gasEstimate.toString()}`);
+    
+    const addIssuerTx = await contracts.trustedIssuersRegistry.connect(tokenOwner).addTrustedIssuer(
+      claimIssuer.address, 
+      [1, 2], // KYC y Acreditado
+      { gasLimit: gasEstimate.mul(2) } // 2x el gas estimado para seguridad
     );
     
     console.log(`   📝 Transacción enviada: ${addIssuerTx.hash}`);
     console.log('   ⏳ Esperando confirmación...');
     
     const receipt = await addIssuerTx.wait();
+    
+    if (receipt.status === 0) {
+      throw new Error(`Transacción falló. Hash: ${addIssuerTx.hash}`);
+    }
+    
     console.log(`   ✅ Confirmado en bloque: ${receipt.blockNumber}`);
+    console.log(`   ⛽ Gas usado: ${receipt.gasUsed.toString()}`);
+    
+    // Verificación final
+    const isTrustedNow = await contracts.trustedIssuersRegistry.isTrustedIssuer(claimIssuer.address);
+    if (!isTrustedNow) {
+      throw new Error('La verificación final falló: el issuer no aparece como trusted después de la transacción');
+    }
     
     console.log(`✅ Trusted issuer agregado: ${claimIssuer.address}`);
     console.log('   📋 Autorizado para claims:');
@@ -440,33 +500,168 @@ async function setupAgentRole(contracts, tokenOwner) {
 async function registerInvestorIdentities(contracts, tokenOwner, investors) {
   console.log('\n👥 PASO 2: REGISTRANDO IDENTIDADES DE INVERSORES');
   console.log('-'.repeat(50));
-    try {
+  
+  try {
+    // Cargar datos del deployment para obtener el identityFactory
+    const deploymentsDir = path.join(__dirname, '..', 'deployments');
+    const factoryLatestPath = path.join(deploymentsDir, 'factory-deployment-latest.json');
+    
+    if (!fs.existsSync(factoryLatestPath)) {
+      throw new Error('Archivo de deployment factory no encontrado');
+    }
+    
+    const deploymentData = JSON.parse(fs.readFileSync(factoryLatestPath, 'utf8'));
+    
+    if (!deploymentData.infrastructure?.identityFactory) {
+      throw new Error('Identity Factory no encontrada en el deployment');
+    }
+    
+    const identityFactory = await ethers.getContractAt('IIdFactory', deploymentData.infrastructure.identityFactory);
+    console.log(`🏗️  Identity Factory: ${identityFactory.address}`);
+    
     for (let i = 0; i < investors.length; i++) {
       const investor = investors[i];
       
-      // Para este ejemplo, usamos direcciones mock para identities
-      // En un caso real, cada inversor tendría su propio contrato ONCHAINID
-      const mockIdentityAddress = ethers.utils.getAddress(
-        '0x' + '1'.repeat(39) + (i + 1).toString()
-      );
+      console.log(`📝 Registrando Investor ${i + 1}...`);
+      console.log(`   👤 Dirección del inversor: ${investor.address}`);
+        // Primero verificar si ya está registrado en el Identity Registry
+      let isAlreadyVerified = false;
+      let existingIdentity = null;
       
+      try {
+        isAlreadyVerified = await contracts.identityRegistry.isVerified(investor.address);
+        existingIdentity = await contracts.identityRegistry.identity(investor.address);
+        
+        if (isAlreadyVerified && existingIdentity !== ethers.constants.AddressZero) {
+          console.log(`   ✅ El inversor ya está registrado con identidad: ${existingIdentity}`);
+          console.log(`   ⏭️  Saltando registro completo...`);
+          continue;
+        }
+      } catch (error) {
+        console.log(`   ⚠️  Error verificando estado existente en Registry: ${error.message}`);
+      }
+      
+      let identityAddress = null;
+      
+      // Verificar si ya tiene una identidad en la factory
+      try {
+        console.log(`   � Verificando identidad existente en Factory...`);
+        const existingFactoryIdentity = await identityFactory.getIdentity(investor.address);
+        
+        if (existingFactoryIdentity && existingFactoryIdentity !== ethers.constants.AddressZero) {
+          identityAddress = existingFactoryIdentity;
+          console.log(`   ✅ Identidad existente encontrada en Factory: ${identityAddress}`);
+        }
+      } catch (factoryCheckError) {
+        console.log(`   ⚠️  Error verificando Factory (normal si no existe): ${factoryCheckError.message}`);
+      }
+      
+      // Si no tiene identidad, crear una nueva
+      if (!identityAddress) {
+        try {
+          console.log(`   🏗️  Creando nuevo contrato de identidad...`);
+          
+          // Usar gas manual para evitar problemas de estimación
+          const gasLimit = 500000; // Gas suficiente para crear identidad
+          const createIdentityTx = await identityFactory.connect(tokenOwner).createIdentity(
+            investor.address, // Management key del inversor
+            `investor-${i}-${Date.now()}`, // Salt único para el deployment
+            { gasLimit: gasLimit }
+          );
+          
+          console.log(`   📝 Transacción enviada: ${createIdentityTx.hash}`);
+          const createReceipt = await createIdentityTx.wait();
+          console.log(`   ✅ Identidad creada en bloque: ${createReceipt.blockNumber}`);
+          
+          // Obtener la dirección de la identidad creada desde los eventos
+          for (const log of createReceipt.logs) {
+            try {
+              const parsedLog = identityFactory.interface.parseLog(log);
+              if (parsedLog.name === 'Deployed') {
+                identityAddress = parsedLog.args[0]; // La dirección es el primer argumento
+                break;
+              }
+            } catch (e) {
+              // Log no es del contrato factory, continuar
+            }
+          }
+          
+          if (!identityAddress) {
+            throw new Error(`No se pudo obtener la dirección de la identidad creada para el investor ${i + 1}`);
+          }
+          
+          console.log(`   🆔 Nuevo contrato de identidad: ${identityAddress}`);
+          
+        } catch (createError) {
+          console.log(`   ❌ Error creando identidad: ${createError.message}`);
+          
+          // Si falló la creación, intentar obtener la identidad existente otra vez
+          if (createError.message.includes('already linked') || 
+              createError.message.includes('Wallet already') ||
+              createError.message.includes('Execution reverted')) {
+            console.log(`   🔄 Reintentando obtener identidad existente...`);
+            
+            try {
+              const existingId = await identityFactory.getIdentity(investor.address);
+              if (existingId && existingId !== ethers.constants.AddressZero) {
+                identityAddress = existingId;
+                console.log(`   🔍 Identidad existente encontrada: ${identityAddress}`);
+              } else {
+                throw new Error(`Wallet parece estar vinculado pero no se puede obtener la identidad para ${investor.address}`);
+              }
+            } catch (getError) {
+              console.log(`   ❌ Error obteniendo identidad existente: ${getError.message}`);
+              throw createError; // Re-lanzar el error original
+            }
+          } else {
+            throw createError; // Re-lanzar si es otro tipo de error
+          }
+        }
+      }
+        // Ahora registrar la identidad en el registry (si no está ya registrada)
       const countryCode = 724; // España - ISO 3166-1 numeric
       
-      console.log(`📝 Registrando Investor ${i + 1}...`);
-      const registerTx = await contracts.identityRegistry.connect(tokenOwner).registerIdentity(
-        investor.address, // Usar la dirección del investor (mock)
-        mockIdentityAddress,
-        countryCode
-      );
-      await registerTx.wait();
+      try {
+        console.log(`   📝 Registrando en Identity Registry...`);
+        
+        // Verificar si ya está registrado antes de intentar registrar
+        const isAlreadyInRegistry = await contracts.identityRegistry.isVerified(investor.address);
+        if (isAlreadyInRegistry) {
+          console.log(`   ✅ Ya está registrado en Identity Registry`);
+        } else {
+          const gasLimit = 300000; // Gas suficiente para registro
+          const registerTx = await contracts.identityRegistry.connect(tokenOwner).registerIdentity(
+            investor.address, // Dirección del wallet del inversor
+            identityAddress,  // Dirección del contrato de identidad
+            countryCode,
+            { gasLimit: gasLimit }
+          );
+          
+          console.log(`   📝 Transacción de registro enviada: ${registerTx.hash}`);
+          const registerReceipt = await registerTx.wait();
+          console.log(`   ✅ Registro completado en bloque: ${registerReceipt.blockNumber}`);
+        }
+        
+      } catch (registerError) {
+        console.log(`   ❌ Error registrando en Identity Registry: ${registerError.message}`);
+        
+        // Verificar si ya está registrado
+        if (registerError.message.includes('already registered') || 
+            registerError.message.includes('INVALID_WALLET') ||
+            registerError.message.includes('Execution reverted')) {
+          console.log(`   ⚠️  El wallet ya está registrado en el Identity Registry`);
+        } else {
+          throw registerError;
+        }
+      }
       
       // Verificar que el registro fue exitoso
       const isVerified = await contracts.identityRegistry.isVerified(investor.address);
       const registeredIdentity = await contracts.identityRegistry.identity(investor.address);
       
-      console.log(`✅ Identidad ${i + 1} registrada:`);
+      console.log(`✅ Identidad ${i + 1} configurada:`);
       console.log(`   👤 Wallet: ${investor.address}`);
-      console.log(`   🆔 Identity: ${mockIdentityAddress}`);
+      console.log(`   🆔 Identity: ${identityAddress}`);
       console.log(`   🌍 País: ${countryCode} (España)`);
       console.log(`   ✅ Verificado: ${isVerified ? 'SÍ' : 'NO'}`);
       console.log(`   📋 Identity en registro: ${registeredIdentity}`);
@@ -505,16 +700,24 @@ async function issueClaims(contracts, claimIssuer, investors) {
 async function mintInitialTokens(contracts, tokenOwner, investor1, investor2) {
   console.log('\n🪙 PASO 4: DESPAUSING Y MINTING TOKENS INICIALES');
   console.log('-'.repeat(50));
-  
-  try {
-    // Despausar el token primero
+    try {
+    // Verificar si el token está pausado
+    const isPaused = await contracts.token.paused();
     console.log('🔓 Despausando token...');
-    await contracts.token.connect(tokenOwner).unpause();
-    console.log('✅ Token despausado exitosamente');
-      // Verificar que los inversores estén registrados
+    
+    if (isPaused) {
+      console.log('   ℹ️  Token está pausado, despausando...');
+      await contracts.token.connect(tokenOwner).unpause();
+      console.log('✅ Token despausado exitosamente');
+    } else {
+      console.log('   ℹ️  Token ya está despausado');
+    }    // Verificar que los inversores estén registrados
     console.log('\n🔍 Verificando registro de inversores...');
-    const isRegistered1 = await contracts.identityRegistry.isVerified(investor1.address);
-    const isRegistered2 = await contracts.identityRegistry.isVerified(investor2.address);
+    const addr1 = getInvestorAddress(investor1);
+    const addr2 = getInvestorAddress(investor2);
+    
+    const isRegistered1 = await contracts.identityRegistry.isVerified(addr1);
+    const isRegistered2 = await contracts.identityRegistry.isVerified(addr2);
     
     console.log(`   Investor 1 verificado: ${isRegistered1 ? '✅' : '❌'}`);
     console.log(`   Investor 2 verificado: ${isRegistered2 ? '✅' : '❌'}`);
@@ -523,31 +726,33 @@ async function mintInitialTokens(contracts, tokenOwner, investor1, investor2) {
       console.log('⚠️  ADVERTENCIA: Los inversores no están verificados en el Identity Registry');
       console.log('   El minting puede fallar o los balances pueden ser 0');
     }
-    
-    // Mintear tokens para investor1
+      // Mintear tokens para investor1
     console.log('\n💰 Iniciando minting...');
     const amount1 = ethers.utils.parseEther('1000');
-    const mintTx1 = await contracts.token.connect(tokenOwner).mint(investor1.address, amount1);
+    const mintTx1 = await contracts.token.connect(tokenOwner).mint(addr1, amount1, {
+      gasLimit: 500000 // Gas manual para evitar problemas de estimación
+    });
     await mintTx1.wait();
     console.log(`✅ Minted ${ethers.utils.formatEther(amount1)} tokens para Investor 1`);
     
     // Mintear tokens para investor2
     const amount2 = ethers.utils.parseEther('500');
-    const mintTx2 = await contracts.token.connect(tokenOwner).mint(investor2.address, amount2);
+    const mintTx2 = await contracts.token.connect(tokenOwner).mint(addr2, amount2, {
+      gasLimit: 500000 // Gas manual para evitar problemas de estimación
+    });
     await mintTx2.wait();
     console.log(`✅ Minted ${ethers.utils.formatEther(amount2)} tokens para Investor 2`);
     
     // Verificar balances con manejo de errores robusto
     console.log('\n🔍 Verificando balances...');
     try {
-      const balance1 = await contracts.token.balanceOf(investor1.address);
+      const balance1 = await contracts.token.balanceOf(addr1);
       console.log(`   Investor 1: ${ethers.utils.formatEther(balance1)} tokens`);
     } catch (balanceError1) {
       console.log(`   ❌ Error obteniendo balance de Investor 1: ${balanceError1.message}`);
     }
-    
-    try {
-      const balance2 = await contracts.token.balanceOf(investor2.address);
+      try {
+      const balance2 = await contracts.token.balanceOf(addr2);
       console.log(`   Investor 2: ${ethers.utils.formatEther(balance2)} tokens`);
     } catch (balanceError2) {
       console.log(`   ❌ Error obteniendo balance de Investor 2: ${balanceError2.message}`);
@@ -567,6 +772,20 @@ async function mintInitialTokens(contracts, tokenOwner, investor1, investor2) {
 }
 
 /**
+ * Helper function para obtener la dirección de un investor (signer o objeto)
+ */
+function getInvestorAddress(investor) {
+  return investor.address || investor.address;
+}
+
+/**
+ * Helper function para obtener el signer de un investor
+ */
+function getInvestorSigner(investor) {
+  return investor.signer || investor;
+}
+
+/**
  * PASO 5: Probar transferencias entre inversores
  */
 async function testTransfers(contracts, investor1, investor2) {
@@ -575,25 +794,60 @@ async function testTransfers(contracts, investor1, investor2) {
   
   try {
     const transferAmount = ethers.utils.parseEther('100');
+    const addr1 = getInvestorAddress(investor1);
+    const addr2 = getInvestorAddress(investor2);
+    const signer1 = getInvestorSigner(investor1);
     
     console.log(`🔄 Transfiriendo ${ethers.utils.formatEther(transferAmount)} tokens:`);
-    console.log(`   De: ${investor1.address}`);
-    console.log(`   A:  ${investor2.address}`);
+    console.log(`   De: ${addr1}`);
+    console.log(`   A:  ${addr2}`);
+    console.log(`   🔑 Usando signer: ${signer1.address}`);
     
-    // Realizar transferencia
-    await contracts.token.connect(investor1).transfer(investor2.address, transferAmount);
+    // Verificar balances ANTES de la transferencia
+    console.log('\n💰 BALANCES ANTES DE LA TRANSFERENCIA:');
+    const balanceBefore1 = await contracts.token.balanceOf(addr1);
+    const balanceBefore2 = await contracts.token.balanceOf(addr2);
+    console.log(`   Investor 1: ${ethers.utils.formatEther(balanceBefore1)} tokens`);
+    console.log(`   Investor 2: ${ethers.utils.formatEther(balanceBefore2)} tokens`);
     
-    // Verificar nuevos balances
-    const balance1 = await contracts.token.balanceOf(investor1.address);
-    const balance2 = await contracts.token.balanceOf(investor2.address);
+    // Realizar transferencia usando el signer correcto
+    console.log('\n🔄 Ejecutando transferencia...');
+    const transferTx = await contracts.token.connect(signer1).transfer(addr2, transferAmount);
+    const receipt = await transferTx.wait();
     
-    console.log('✅ Transferencia exitosa!');
-    console.log('\n💰 NUEVOS BALANCES:');
+    console.log(`✅ Transferencia exitosa en tx: ${transferTx.hash}`);
+    console.log(`   Bloque: ${receipt.blockNumber}`);
+    console.log(`   Gas usado: ${receipt.gasUsed.toString()}`);
+    
+    // Verificar nuevos balances DESPUÉS de la transferencia
+    console.log('\n💰 BALANCES DESPUÉS DE LA TRANSFERENCIA:');
+    const balance1 = await contracts.token.balanceOf(addr1);
+    const balance2 = await contracts.token.balanceOf(addr2);
     console.log(`   Investor 1: ${ethers.utils.formatEther(balance1)} tokens`);
     console.log(`   Investor 2: ${ethers.utils.formatEther(balance2)} tokens`);
     
+    // Verificar que la transferencia realmente cambió los balances
+    const change1 = balanceBefore1.sub(balance1);
+    const change2 = balance2.sub(balanceBefore2);
+    
+    console.log('\n� CAMBIOS EN BALANCES:');
+    console.log(`   Investor 1 perdió: ${ethers.utils.formatEther(change1)} tokens`);
+    console.log(`   Investor 2 ganó: ${ethers.utils.formatEther(change2)} tokens`);
+    
+    if (change1.eq(transferAmount) && change2.eq(transferAmount)) {
+      console.log('✅ Transferencia verificada: Los balances cambiaron correctamente');
+    } else {
+      console.log('⚠️  ADVERTENCIA: Los balances no cambiaron como se esperaba');
+      console.log(`   Se esperaba transferir: ${ethers.utils.formatEther(transferAmount)}`);
+      console.log(`   Cambio real en origen: ${ethers.utils.formatEther(change1)}`);
+      console.log(`   Cambio real en destino: ${ethers.utils.formatEther(change2)}`);
+    }
+    
   } catch (error) {
     console.error('❌ Error en transferencia:', error.message);
+    if (error.reason) {
+      console.error('   Razón:', error.reason);
+    }
     throw error;
   }
 }
@@ -697,6 +951,88 @@ async function verifyContractsAccessibility(contracts) {
   }
   
   console.log('✅ Todos los contratos son accesibles');
+}
+
+/**
+ * Función para verificar permisos de owner y agent en todos los contratos
+ */
+async function verifyPermissions(contracts, expectedOwner, expectedAgent) {
+  console.log('🔐 Verificando permisos y roles...');
+  console.log(`   👤 Owner esperado: ${expectedOwner.address}`);
+  console.log(`   🛡️  Agent esperado: ${expectedAgent.address}`);
+  
+  const permissionChecks = [
+    {
+      name: 'Token',
+      contract: contracts.token,
+      ownerMethod: 'owner',
+      agentMethod: 'isAgent'
+    },
+    {
+      name: 'Identity Registry',
+      contract: contracts.identityRegistry,
+      ownerMethod: 'owner',
+      agentMethod: 'isAgent'
+    },
+    {
+      name: 'Trusted Issuers Registry',
+      contract: contracts.trustedIssuersRegistry,
+      ownerMethod: 'owner',
+      agentMethod: null // No tiene rol de agent
+    },
+    {
+      name: 'Claim Topics Registry',
+      contract: contracts.claimTopicsRegistry,
+      ownerMethod: 'owner',
+      agentMethod: null // No tiene rol de agent
+    },
+    {
+      name: 'Compliance',
+      contract: contracts.compliance,
+      ownerMethod: 'owner',
+      agentMethod: null // No tiene rol de agent
+    }
+  ];
+  
+  let hasPermissionIssues = false;
+  
+  for (const check of permissionChecks) {
+    try {
+      console.log(`   🔍 Verificando ${check.name}...`);
+      
+      // Verificar owner
+      const currentOwner = await check.contract[check.ownerMethod]();
+      const isCorrectOwner = currentOwner.toLowerCase() === expectedOwner.address.toLowerCase();
+      
+      console.log(`      👑 Owner actual: ${currentOwner}`);
+      console.log(`      ✅ Owner correcto: ${isCorrectOwner ? 'SÍ' : 'NO'}`);
+      
+      if (!isCorrectOwner) {
+        hasPermissionIssues = true;
+        console.log(`      ❌ PROBLEMA: Owner esperado ${expectedOwner.address}, actual ${currentOwner}`);
+      }
+      
+      // Verificar agent si aplica
+      if (check.agentMethod) {
+        const isAgent = await check.contract[check.agentMethod](expectedAgent.address);
+        console.log(`      🛡️  Es Agent: ${isAgent ? 'SÍ' : 'NO'}`);
+        
+        if (!isAgent) {
+          console.log(`      ⚠️  ADVERTENCIA: ${expectedAgent.address} no es Agent en ${check.name}`);
+        }
+      }
+      
+    } catch (error) {
+      console.log(`      ❌ Error verificando ${check.name}: ${error.message}`);
+      hasPermissionIssues = true;
+    }
+  }
+  
+  if (hasPermissionIssues) {
+    throw new Error('Se encontraron problemas de permisos. Revisa la transferencia de ownership en el deployment.');
+  }
+  
+  console.log('✅ Verificación de permisos completada');
 }
 
 // Agregar comando npm al package.json

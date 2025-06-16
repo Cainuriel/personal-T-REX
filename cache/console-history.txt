@@ -1,0 +1,15 @@
+console.log("Private Key:", wallet2.privateKey);
+wallet2
+const wallet2 = ethers.Wallet.createRandom();
+wallet2
+console.log("Private Key:", wallet2.privateKey);
+console.log("Private Key:", wallet1.privateKey);
+wallet1
+const wallet1 = ethers.Wallet.createRandom();
+npx hardhat console --network alastria
+console.log("Address:", wallet2.address); 
+console.log("Investor 2:");
+console.log("Private Key:", wallet1.privateKey);
+console.log("Address:", wallet1.address);
+consconsole.log("Investor 1:");
+const wallet1 = ethers.Wallet.createRandom();

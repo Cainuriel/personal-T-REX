@@ -6,45 +6,36 @@ Esta guía te permitirá desplegar un ecosistema completo de tokens de seguridad
 
 1. **Node.js** (v16 o superior)
 2. **Hardhat** configurado
-3. **Wallet** con ETH para gas fees
-4. **Red blockchain Taycan** configurada (http://5.250.188.118:8545)
-5. **Variable de entorno** `ADMIN_WALLET_PRIV_KEY` configurada
+3. **Wallet** con fondos para transacciones (gas fees no aplicables en Alastria)
+4. **Red blockchain Alastria** configurada en hardhat.config.ts
+5. **Variables de entorno** configuradas en `.env`
 
 ### Configuración de Variables de Entorno
 
-Crear archivo `.env` en la raíz del proyecto:
+Crear archivo `.env` en la raíz del proyecto basado en `.env.example`:
 ```bash
+# Clave privada de la cuenta principal (Owner/Agent/Issuer)
 ADMIN_WALLET_PRIV_KEY=tu_private_key_aqui
+
+# Claves privadas de inversores (para transferencias reales)
+INVESTOR1_PRIV_KEY=clave_inversor_1
+INVESTOR2_PRIV_KEY=clave_inversor_2
+
+# Tipo de deployment preferido
 DEPLOYMENT_TYPE=factory  # o manual
 ```
 
-**⚠️ IMPORTANTE**: Nunca subas el archivo `.env` al repositorio. Ya está incluido en `.gitignore`.
 
 ## 🛠️ Instalación
 
 ```bash
-# Instalar todas las dependencias (incluyendo cross-env)
+
 npm install
 
 # Compilar contratos
 npx hardhat compile
 ```
 
-### Dependencias Importantes
-
-- **cross-env**: Permite usar variables de entorno de forma multiplataforma
-- **hardhat**: Framework de desarrollo de Ethereum
-- **@openzeppelin/contracts**: Librería de contratos seguros
-- **@onchain-id/solidity**: Contratos para gestión de identidades
-
-### Red Taycan
-
-El proyecto está configurado para usar la red **Taycan** por defecto:
-- **URL**: http://5.250.188.118:8545
-- **Chain ID**: Se detecta automáticamente
-- **Timeout**: 300000ms (5 minutos)
-
-Para usar esta red, asegúrate de tener configurada la variable `ADMIN_WALLET_PRIV_KEY` en tu archivo `.env`.
 
 ## 🎯 Opciones de Despliegue
 
@@ -76,22 +67,24 @@ Para usar esta red, asegúrate de tener configurada la variable `ADMIN_WALLET_PR
 
 ## 🚀 Ejecutar Despliegue
 
-### Para usar Factory:
+### Para usar Factory (RECOMENDADO):
 ```bash
-# Editar scripts/deploy-simple.js
-# Descomentar línea: await deployWithFactory(deployer, tokenOwner, agent);
-# Comentar línea: await deployManualStepByStep(deployer, tokenOwner, agent);
-
-npx hardhat run scripts/deploy-simple.js --network taycan
+npm run deploy:simple -- --network alastria
 ```
 
 ### Para despliegue manual:
 ```bash
-# Editar scripts/deploy-simple.js  
-# Comentar línea: await deployWithFactory(deployer, tokenOwner, agent);
-# Descomentar línea: await deployManualStepByStep(deployer, tokenOwner, agent);
+npm run deploy:manual -- --network alastria
+```
 
-npx hardhat run scripts/deploy-simple.js --network taycan
+### Verificar después del despliegue:
+```bash
+npm run diagnosis:factory -- --network alastria
+```
+
+### Probar el sistema completo:
+```bash
+npm run example:factory -- --network alastria
 ```
 
 ## 📊 Arquitectura de Contratos
@@ -185,231 +178,310 @@ ctr.addClaimTopic(2); // Acreditado
 ```
 **Propósito:** Define claims obligatorios para inversores
 
-## 📝 Configuración Post-Despliegue
-
-Después del despliegue, ejecuta el script de configuración:
-
-```bash
-# 1. Actualizar direcciones en scripts/example-usage.js
-# 2. Ejecutar configuración
-npx hardhat run scripts/example-usage.js --network <tu-red>
-```
-
-Este script:
-1. ✅ Configura trusted issuers
-2. ✅ Registra identidades de ejemplo
-3. ✅ Emite tokens iniciales
-4. ✅ Prueba transferencias
-
-## ⚠️ Diferencias con el Repositorio
-
-### ✅ Ventajas del T-REX Factory:
-- **Factory Pattern:** T-REX usa TREXFactory que simplifica enormemente el despliegue
-- **Proxy Pattern:** Soporte nativo para upgrades via proxies
-- **Implementation Authority:** Sistema centralizado de versiones
-- **Identity Factory:** Integración con OnchainID automática
-
-### 🔄 Adaptaciones Realizadas:
-- **Dos opciones:** Factory (simple) + Manual (control total)
-- **Modular Compliance:** Usa sistema modular vs compliance básico
-- **OnchainID Integration:** Manejo automático de identidades digitales
-- **Proxy Deployments:** Soporte para upgrades en producción
-
-## 🎯 Casos de Uso
-
-### Para ISBE:
-```javascript
-const tokenDetails = {
-  name: "ISBE Security Token",
-  symbol: "AST", 
-  decimals: 18,
-  // ... configuración específica
-};
-```
-
-### Para Testing:
-```javascript
-const tokenDetails = {
-  name: "Test Security Token",
-  symbol: "TST",
-  decimals: 18,
-  // ... configuración de prueba
-};
-```
 
 ## 🧪 Probar el Deployment con Example Usage
 
-Después de desplegar los contratos, puedes probar que todo funciona correctamente usando el script `example-usage.js`. Este script realiza un flujo completo de configuración y uso del token.
+Después de desplegar los contratos, puedes probar que todo funciona correctamente usando el script `example-usage.js`. Este script realiza un flujo completo de configuración y uso del token, demostrando todas las capacidades de T-REX.
 
-### Ejecutar el Script de Ejemplo
+### 🎯 ¿Qué hace exactamente el script example-usage.js?
+
+El script `example-usage.js` es el **script principal** que demuestra el flujo completo de un token de seguridad ERC-3643. Ejecuta un proceso end-to-end que incluye:
+
+#### **PASO 1: 🏛️ Configuración de Trusted Issuers**
+- Registra emisores autorizados para certificar identidades (KYC, AML, etc.)
+- Verifica que los issuers pueden emitir claims válidos
+- Configura los claim topics requeridos
+
+#### **PASO 2: 🛡️ Configuración de Roles de Agent**
+- Asigna permisos de Agent al deployer para poder registrar identidades
+- Verifica que los roles están correctamente configurados
+- Permite realizar operaciones administrativas
+
+#### **PASO 3: 👥 Registro de Identidades de Inversores**
+- **Crea contratos ONCHAINID reales** para cada inversor usando Identity Factory
+- **Registra las identidades** en el Identity Registry (whitelist)
+- **Asigna países** a cada identidad (España por defecto)
+- **Verifica** que las identidades están correctamente registradas
+
+#### **PASO 4: 📋 Emisión de Claims (Simulados)**
+- Simula la emisión de claims KYC (Know Your Customer)
+- Simula claims de acreditación de inversor
+- En producción, estos claims serían emitidos por entidades certificadoras reales
+
+#### **PASO 5: 🪙 Minting de Tokens**
+- **Despausar el token** si está pausado
+- **Emitir tokens iniciales** a los inversores verificados (1000 y 500 tokens)
+- **Verificar balances** para confirmar que el minting fue exitoso
+
+#### **PASO 6: 🔄 Pruebas de Transferencia Real**
+- **Usa cuentas independientes** con private keys separadas
+- **Transfiere 100 tokens** del Investor 1 al Investor 2
+- **Verifica automáticamente** que el compliance se cumple
+- **Confirma cambios de balance** antes y después de la transferencia
+
+#### **PASO 7: 📊 Estado Final del Sistema**
+- Muestra información completa del token configurado
+- Lista todas las funcionalidades implementadas y probadas
+- Confirma que el sistema está listo para producción
+
+### 🚀 Ejecutar el Script de Ejemplo
 
 #### Opción 1: Con Scripts NPM (RECOMENDADO)
 
 ```bash
-# Primero instalar cross-env si no está instalado:
-npm install
-
 # Para usar deployment de Factory:
-npm run example:factory -- --network taycan
+npm run example:factory -- --network alastria
 
 # Para usar deployment Manual:  
-npm run example:manual -- --network taycan
+npm run example:manual -- --network alastria
 
 # Para usar cualquier deployment disponible:
-npm run example -- --network taycan
+npm run example -- --network alastria
 ```
 
 #### Opción 2: Con variables de entorno directamente
 
 ```bash
 # Linux/macOS:
-DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network taycan
-DEPLOYMENT_TYPE=manual npx hardhat run scripts/example-usage.js --network taycan
+DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network alastria
+DEPLOYMENT_TYPE=manual npx hardhat run scripts/example-usage.js --network alastria
 
 # Windows PowerShell:
-$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network taycan
-$env:DEPLOYMENT_TYPE="manual"; npx hardhat run scripts/example-usage.js --network taycan
+$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network alastria
+$env:DEPLOYMENT_TYPE="manual"; npx hardhat run scripts/example-usage.js --network alastria
 
 # Windows CMD:
-set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network taycan
-set DEPLOYMENT_TYPE=manual && npx hardhat run scripts/example-usage.js --network taycan
+set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network alastria
+set DEPLOYMENT_TYPE=manual && npx hardhat run scripts/example-usage.js --network alastria
 ```
 
 #### Opción 3: Con cross-env (multiplataforma)
 
 ```bash
 # Funciona en Windows, Linux y macOS:
-npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network taycan
-npx cross-env DEPLOYMENT_TYPE=manual hardhat run scripts/example-usage.js --network taycan
+npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network alastria
+npx cross-env DEPLOYMENT_TYPE=manual hardhat run scripts/example-usage.js --network alastria
 ```
 
-#### Opción 4: Con archivo .env
+### 📋 Requisitos para example-usage.js
 
-Crear un archivo `.env` basado en `.env.example`:
+El script necesita **3 cuentas diferentes** configuradas en `.env`:
+
 ```bash
-cp .env.example .env
-# Editar .env y configurar DEPLOYMENT_TYPE=factory o DEPLOYMENT_TYPE=manual
-npm run example -- --network taycan
+# Cuenta principal (Owner, Agent, Issuer)
+ADMIN_WALLET_PRIV_KEY=tu_clave_principal
+
+# Cuentas de inversores (para transferencias reales)
+INVESTOR1_PRIV_KEY=clave_inversor_1
+INVESTOR2_PRIV_KEY=clave_inversor_2
+
+# Tipo de deployment
+DEPLOYMENT_TYPE=factory
 ```
 
-### ¿Qué hace el script example-usage.js?
+### ✅ Resultado Esperado
 
-El script ejecuta un flujo completo de configuración y prueba:
+Si todo funciona correctamente, verás una salida similar a:
 
-1. **🏛️ Configuración de Trusted Issuers**: Registra emisores autorizados para claims
-2. **🛡️ Configuración de Roles de Agent**: Asigna permisos necesarios
-3. **👥 Registro de Identidades**: Registra inversores en el whitelist
-4. **📋 Emisión de Claims**: Simula la emisión de claims KYC y acreditación
-5. **🪙 Minting de Tokens**: Despausar token y emite tokens a inversores verificados
-6. **🔄 Pruebas de Transferencia**: Realiza transferencias entre inversores
-7. **📊 Estado Final**: Muestra resumen del sistema configurado
+```
+🚀 INICIANDO CONFIGURACIÓN Y USO DE T-REX SUITE
+✅ Contratos cargados exitosamente
+✅ Trusted issuers configurados
+✅ Roles de Agent configurados
+✅ Identidades registradas con contratos ONCHAINID
+✅ Claims simulados emitidos
+✅ Tokens emitidos (1000 y 500 tokens)
+✅ Transferencia exitosa (100 tokens)
+✅ Balances verificados correctamente
+🎉 ¡CONFIGURACIÓN Y PRUEBAS COMPLETADAS EXITOSAMENTE!
+```
 
-### Variables de Entorno Disponibles
+## 🛠️ Scripts Adicionales Disponibles
 
-| Variable | Valores | Descripción |
-|----------|---------|-------------|
-| `DEPLOYMENT_TYPE` | `factory` \| `manual` | Especifica qué deployment usar |
+Además del script principal, tienes acceso a varios scripts de utilidad:
 
-### Troubleshooting del Example Usage
+### 🔍 Scripts de Diagnóstico
 
-#### Error: "No se encontraron despliegues del tipo especificado"
+#### `diagnosis.js` - Diagnóstico Completo del Sistema
 ```bash
-# Verifica que el deployment existe:
-ls deployments/
-
-# Debe existir uno de estos archivos:
-# - factory-deployment-latest.json
-# - manual-deployment-latest.json
+npm run diagnosis:factory -- --network alastria
+npm run diagnosis:manual -- --network alastria
 ```
+**Qué hace:**
+- Verifica conectividad con la red
+- Analiza el estado de todos los contratos desplegados
+- Verifica permisos y roles (Owner, Agent)
+- Detecta problemas de configuración comunes
 
-#### Error: "Chain ID no coincide"
+#### `verify-deployment.js` - Verificación de Deployment
 ```bash
-# Verifica que estás en la red correcta:
-npx hardhat node  # Para red local
-# o usa la red donde desplegaste los contratos
+npm run verify -- --network alastria
 ```
+**Qué hace:**
+- Confirma que todos los contratos están correctamente desplegados
+- Verifica la integridad de las conexiones entre contratos
+- Valida la configuración inicial
 
-## 🔧 Troubleshooting
-
-### Error: "token already deployed"
+#### `check-permissions.js` - Verificación Específica de Permisos
 ```bash
-# Cambia el salt en deploy-simple.js
-const salt = "NUEVO_SALT_UNICO";
+npm run check-permissions -- --network alastria
 ```
+**Qué hace:**
+- Verifica permisos específicos en cada contrato
+- Identifica problemas de autorización
+- Ayuda a diagnosticar errores de acceso
 
-### Error: "claim pattern not valid"
-```bash
-# Verifica que issuers.length == issuerClaims.length
-const claimDetails = {
-  issuers: [issuer1.address],
-  issuerClaims: [[1, 2]] // Array de arrays
-};
-```
+### 🛠️ Scripts de Mantenimiento
 
-### Error: "insufficient gas"
+#### `cleanup-all-test-addresses.js` - Limpieza Masiva
 ```bash
-# Aumenta gas limit en hardhat.config.ts
-gas: 8000000
+npm run cleanup-all -- --network alastria
 ```
+**Qué hace:**
+- Limpia todas las direcciones de prueba que estén en estado inconsistente
+- Útil para resetear el estado antes de nuevas pruebas
+- Elimina identidades registradas incorrectamente
+
+#### `clean-inconsistent-identity.js` - Limpieza Individual
+```bash
+TARGET_ADDRESS=0x... npm run cleanup-identity -- --network alastria
+```
+**Qué hace:**
+- Limpia una dirección específica en estado inconsistente
+- Permite reparar problemas puntuales sin afectar otras identidades
+- Útil para debugging de direcciones específicas
+
+### 🐛 Scripts de Debug
+
+#### `debug-roles.js` - Debug de Roles y Permisos
+```bash
+npm run debug-roles -- --network alastria
+```
+**Qué hace:**
+- Análisis detallado de roles en todos los contratos
+- Identifica problemas específicos de permisos
+- Muestra quién tiene qué roles
+
+#### `debug-identity-status.js` - Estado de Identidades
+```bash
+npm run debug-identities -- --network alastria
+```
+**Qué hace:**
+- Verifica el estado de identidades para todas las cuentas
+- Muestra qué direcciones están registradas y verificadas
+- Ayuda a identificar problemas de registro
+
+### 📊 Tabla de Scripts Completa
+
+| Script NPM | Archivo | Propósito | Cuándo Usar |
+|------------|---------|-----------|-------------|
+| `npm run deploy:simple` | `deploy-simple.js` | Despliegue con Factory | Primera vez, despliegue estándar |
+| `npm run deploy:manual` | `deploy.js` | Despliegue manual | Configuración personalizada |
+| `npm run example:factory` | `example-usage.js` | **SCRIPT PRINCIPAL** - Flujo completo T-REX | **Siempre después del deploy** |
+| `npm run diagnosis:factory` | `diagnosis.js` | Diagnóstico completo | Verificar estado del sistema |
+| `npm run verify` | `verify-deployment.js` | Verificación básica | Confirmar deployment |
+| `npm run check-permissions` | `check-permissions.js` | Verificar permisos | Problemas de autorización |
+| `npm run cleanup-all` | `cleanup-all-test-addresses.js` | Limpieza masiva | Resetear antes de nuevas pruebas |
+| `npm run cleanup-identity` | `clean-inconsistent-identity.js` | Limpieza individual | Problemas específicos |
+| `npm run debug-roles` | `debug-roles.js` | Debug de roles | Problemas de permisos |
+| `npm run debug-identities` | `debug-identity-status.js` | Debug de identidades | Problemas de registro |
+
+### 🎯 Flujo de Trabajo Recomendado
+
+1. **Desplegar:** `npm run deploy:simple -- --network alastria`
+2. **Verificar:** `npm run diagnosis:factory -- --network alastria`  
+3. **Probar flujo completo:** `npm run example:factory -- --network alastria` ⭐
+4. **Mantener:** Scripts de limpieza según necesidad
+
+---
+
+**💡 Tip:** El script `example-usage.js` es el más importante ya que demuestra que todo el sistema T-REX funciona correctamente end-to-end, incluyendo transferencias reales entre cuentas independientes.
 
 ## 📚 Recursos Adicionales
 
-### Referencia Rápida de Scripts NPM
+### Configuración de Red Alastria
 
-| Script | Descripción | Ejemplo |
-|--------|-------------|---------|
-| `npm install` | Instala dependencias (incluyendo cross-env) | `npm install` |
-| `npm run deploy:simple` | Despliega usando Factory | `npm run deploy:simple -- --network taycan` |
-| `npm run deploy:manual` | Despliega paso a paso | `npm run deploy:manual -- --network taycan` |
-| `npm run example` | Prueba con cualquier deployment | `npm run example -- --network taycan` |
-| `npm run example:factory` | Prueba específicamente factory (usa cross-env) | `npm run example:factory -- --network taycan` |
-| `npm run example:manual` | Prueba específicamente manual (usa cross-env) | `npm run example:manual -- --network taycan` |
-| `npm run verify` | Verifica deployment | `npm run verify -- --network taycan` |
+Este proyecto está configurado específicamente para funcionar con la **red Alastria**:
+- **Nombre:** `alastria`
+- **Chain ID:** 2020
+- **RPC:** `http://108.142.237.13:8545`
 
-### Métodos para Variables de Entorno
+### Variables de Entorno Requeridas
+
+| Variable | Descripción | Ejemplo | Requerido |
+|----------|-------------|---------|-----------|
+| `ADMIN_WALLET_PRIV_KEY` | Clave privada de la cuenta principal | `0x123...` | ✅ |
+| `INVESTOR1_PRIV_KEY` | Clave privada del inversor 1 | `0x456...` | ✅ |
+| `INVESTOR2_PRIV_KEY` | Clave privada del inversor 2 | `0x789...` | ✅ |
+| `DEPLOYMENT_TYPE` | Tipo de deployment | `factory` \| `manual` | ✅ |
+
+### Métodos para Configurar Variables de Entorno
 
 | Método | Plataforma | Ejemplo |
 |--------|------------|---------|
-| Scripts NPM | Todas (usa cross-env) | `npm run example:factory -- --network taycan` |
-| cross-env directo | Todas | `npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network taycan` |
-| Variable nativa | Linux/macOS | `DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network taycan` |
-| PowerShell | Windows | `$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network taycan` |
-| CMD | Windows | `set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network taycan` |
-| Archivo .env | Todas | `echo "DEPLOYMENT_TYPE=factory" > .env && npm run example -- --network taycan` |
+| **Scripts NPM (RECOMENDADO)** | Todas (usa cross-env) | `npm run example:factory -- --network alastria` |
+| cross-env directo | Todas | `npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network alastria` |
+| Variable nativa | Linux/macOS | `DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network alastria` |
+| PowerShell | Windows | `$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network alastria` |
+| CMD | Windows | `set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network alastria` |
+| Archivo .env | Todas | `echo "DEPLOYMENT_TYPE=factory" > .env && npm run example -- --network alastria` |
 
-### Variables de Entorno
-
-| Variable | Valores | Descripción | Archivo |
-|----------|---------|-------------|---------|
-| `DEPLOYMENT_TYPE` | `factory` \| `manual` | Tipo de deployment para example-usage.js | `.env` |
-
-### Archivos de Configuración
+### Archivos de Configuración y Deployment
 
 | Archivo | Propósito |
 |---------|-----------|
 | `.env.example` | Plantilla de variables de entorno |
 | `.env` | Variables de entorno personalizadas (crear desde .env.example) |
-| `deployments/factory-deployment-latest.json` | Resultado de deployment factory |
+| `deployments/factory-deployment-latest.json` | Resultado de deployment usando factory |
 | `deployments/manual-deployment-latest.json` | Resultado de deployment manual |
+| `scripts/README.md` | Documentación detallada de cada script |
+
+### Enlaces de Referencia
 
 - [T-REX Documentation](https://docs.tokeny.com/)
 - [ERC-3643 Standard](https://eips.ethereum.org/EIPS/eip-3643)
 - [OnchainID](https://docs.onchainid.com/)
 - [Hardhat Documentation](https://hardhat.org/docs)
+- [Red Alastria](https://alastria.io/)
 
-## 🤝 Soporte
+### Comandos de Git y Husky
 
-Para soporte técnico:
-1. Revisar logs de despliegue
-2. Verificar configuración de red
-3. Comprobar balances de gas
-4. Consultar documentación T-REX
+```bash
+# Desactivar husky durante desarrollo
+git config core.hooksPath /dev/null
+
+# Reactivar husky
+git config --unset core.hooksPath
+```
+
+### Solución de Problemas Comunes
+
+#### 🔧 Error de Permisos
+```bash
+npm run check-permissions -- --network alastria
+npm run debug-roles -- --network alastria
+```
+
+#### 🔧 Problemas de Identidades
+```bash
+npm run debug-identities -- --network alastria
+npm run cleanup-all -- --network alastria
+```
+
+#### 🔧 Estado Inconsistente
+```bash
+npm run diagnosis:factory -- --network alastria
+TARGET_ADDRESS=0x... npm run cleanup-identity -- --network alastria
+```
+
+#### 🔧 Verificación General
+```bash
+npm run verify -- --network alastria
+npm run diagnosis:factory -- --network alastria
+```
 
 ---
 
+**📌 Nota:** Todos los comandos están optimizados para la red Alastria. El script `example-usage.js` es la mejor manera de verificar que todo el sistema T-REX funciona correctamente.
 
-deactive husky
-``` git config core.hooksPath /dev/null ```
-active
-``` git config --unset core.hooksPath ```
 ----

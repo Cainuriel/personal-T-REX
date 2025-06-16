@@ -2,12 +2,14 @@
 
 Esta guía te permitirá desplegar un ecosistema completo de tokens de seguridad ERC-3643 usando el framework T-REX.
 
+> ⚠️ **ATENCIÓN:** No hay redes configuradas en el `hardhat.config.ts`. Disponga usted de sus custom networks antes de comenzar.
+
 ## 📋 Requisitos Previos
 
 1. **Node.js** (v16 o superior)
 2. **Hardhat** configurado
-3. **Wallet** con fondos para transacciones (gas fees no aplicables en Alastria)
-4. **Red blockchain Alastria** configurada en hardhat.config.ts
+3. **Wallet** con fondos para transacciones (gas fees no aplicables en <YOUR_CUSTOM_NETWORK>)
+4. **Red blockchain <YOUR_CUSTOM_NETWORK>** configurada en hardhat.config.ts
 5. **Variables de entorno** configuradas en `.env`
 
 ### Configuración de Variables de Entorno
@@ -69,22 +71,22 @@ npx hardhat compile
 
 ### Para usar Factory (RECOMENDADO):
 ```bash
-npm run deploy:simple -- --network alastria
+npm run deploy:simple -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 ### Para despliegue manual:
 ```bash
-npm run deploy:manual -- --network alastria
+npm run deploy:manual -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 ### Verificar después del despliegue:
 ```bash
-npm run diagnosis:factory -- --network alastria
+npm run diagnosis:factory -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 ### Probar el sistema completo:
 ```bash
-npm run example:factory -- --network alastria
+npm run example:factory -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 ## 📊 Arquitectura de Contratos
@@ -230,37 +232,37 @@ El script `example-usage.js` es el **script principal** que demuestra el flujo c
 
 ```bash
 # Para usar deployment de Factory:
-npm run example:factory -- --network alastria
+npm run example:factory -- --network <YOUR_CUSTOM_NETWORK>
 
 # Para usar deployment Manual:  
-npm run example:manual -- --network alastria
+npm run example:manual -- --network <YOUR_CUSTOM_NETWORK>
 
 # Para usar cualquier deployment disponible:
-npm run example -- --network alastria
+npm run example -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 #### Opción 2: Con variables de entorno directamente
 
 ```bash
 # Linux/macOS:
-DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network alastria
-DEPLOYMENT_TYPE=manual npx hardhat run scripts/example-usage.js --network alastria
+DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
+DEPLOYMENT_TYPE=manual npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
 
 # Windows PowerShell:
-$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network alastria
-$env:DEPLOYMENT_TYPE="manual"; npx hardhat run scripts/example-usage.js --network alastria
+$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
+$env:DEPLOYMENT_TYPE="manual"; npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
 
 # Windows CMD:
-set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network alastria
-set DEPLOYMENT_TYPE=manual && npx hardhat run scripts/example-usage.js --network alastria
+set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
+set DEPLOYMENT_TYPE=manual && npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
 ```
 
 #### Opción 3: Con cross-env (multiplataforma)
 
 ```bash
 # Funciona en Windows, Linux y macOS:
-npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network alastria
-npx cross-env DEPLOYMENT_TYPE=manual hardhat run scripts/example-usage.js --network alastria
+npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
+npx cross-env DEPLOYMENT_TYPE=manual hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>
 ```
 
 ### 📋 Requisitos para example-usage.js
@@ -304,8 +306,8 @@ Además del script principal, tienes acceso a varios scripts de utilidad:
 
 #### `diagnosis.js` - Diagnóstico Completo del Sistema
 ```bash
-npm run diagnosis:factory -- --network alastria
-npm run diagnosis:manual -- --network alastria
+npm run diagnosis:factory -- --network <YOUR_CUSTOM_NETWORK>
+npm run diagnosis:manual -- --network <YOUR_CUSTOM_NETWORK>
 ```
 **Qué hace:**
 - Verifica conectividad con la red
@@ -315,7 +317,7 @@ npm run diagnosis:manual -- --network alastria
 
 #### `verify-deployment.js` - Verificación de Deployment
 ```bash
-npm run verify -- --network alastria
+npm run verify -- --network <YOUR_CUSTOM_NETWORK>
 ```
 **Qué hace:**
 - Confirma que todos los contratos están correctamente desplegados
@@ -324,7 +326,7 @@ npm run verify -- --network alastria
 
 #### `check-permissions.js` - Verificación Específica de Permisos
 ```bash
-npm run check-permissions -- --network alastria
+npm run check-permissions -- --network <YOUR_CUSTOM_NETWORK>
 ```
 **Qué hace:**
 - Verifica permisos específicos en cada contrato
@@ -335,7 +337,7 @@ npm run check-permissions -- --network alastria
 
 #### `cleanup-all-test-addresses.js` - Limpieza Masiva
 ```bash
-npm run cleanup-all -- --network alastria
+npm run cleanup-all -- --network <YOUR_CUSTOM_NETWORK>
 ```
 **Qué hace:**
 - Limpia todas las direcciones de prueba que estén en estado inconsistente
@@ -344,7 +346,7 @@ npm run cleanup-all -- --network alastria
 
 #### `clean-inconsistent-identity.js` - Limpieza Individual
 ```bash
-TARGET_ADDRESS=0x... npm run cleanup-identity -- --network alastria
+TARGET_ADDRESS=0x... npm run cleanup-identity -- --network <YOUR_CUSTOM_NETWORK>
 ```
 **Qué hace:**
 - Limpia una dirección específica en estado inconsistente
@@ -355,7 +357,7 @@ TARGET_ADDRESS=0x... npm run cleanup-identity -- --network alastria
 
 #### `debug-roles.js` - Debug de Roles y Permisos
 ```bash
-npm run debug-roles -- --network alastria
+npm run debug-roles -- --network <YOUR_CUSTOM_NETWORK>
 ```
 **Qué hace:**
 - Análisis detallado de roles en todos los contratos
@@ -364,7 +366,7 @@ npm run debug-roles -- --network alastria
 
 #### `debug-identity-status.js` - Estado de Identidades
 ```bash
-npm run debug-identities -- --network alastria
+npm run debug-identities -- --network <YOUR_CUSTOM_NETWORK>
 ```
 **Qué hace:**
 - Verifica el estado de identidades para todas las cuentas
@@ -388,9 +390,9 @@ npm run debug-identities -- --network alastria
 
 ### 🎯 Flujo de Trabajo Recomendado
 
-1. **Desplegar:** `npm run deploy:simple -- --network alastria`
-2. **Verificar:** `npm run diagnosis:factory -- --network alastria`  
-3. **Probar flujo completo:** `npm run example:factory -- --network alastria` ⭐
+1. **Desplegar:** `npm run deploy:simple -- --network <YOUR_CUSTOM_NETWORK>`
+2. **Verificar:** `npm run diagnosis:factory -- --network <YOUR_CUSTOM_NETWORK>`  
+3. **Probar flujo completo:** `npm run example:factory -- --network <YOUR_CUSTOM_NETWORK>` ⭐
 4. **Mantener:** Scripts de limpieza según necesidad
 
 ---
@@ -399,10 +401,10 @@ npm run debug-identities -- --network alastria
 
 ## 📚 Recursos Adicionales
 
-### Configuración de Red Alastria
+### Configuración de Red <YOUR_CUSTOM_NETWORK>
 
-Este proyecto está configurado específicamente para funcionar con la **red Alastria**:
-- **Nombre:** `alastria`
+Este proyecto está configurado específicamente para funcionar con la **red <YOUR_CUSTOM_NETWORK>**:
+- **Nombre:** `<YOUR_CUSTOM_NETWORK>`
 - **Chain ID:** 2020
 - **RPC:** `http://108.142.237.13:8545`
 
@@ -419,12 +421,12 @@ Este proyecto está configurado específicamente para funcionar con la **red Ala
 
 | Método | Plataforma | Ejemplo |
 |--------|------------|---------|
-| **Scripts NPM (RECOMENDADO)** | Todas (usa cross-env) | `npm run example:factory -- --network alastria` |
-| cross-env directo | Todas | `npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network alastria` |
-| Variable nativa | Linux/macOS | `DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network alastria` |
-| PowerShell | Windows | `$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network alastria` |
-| CMD | Windows | `set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network alastria` |
-| Archivo .env | Todas | `echo "DEPLOYMENT_TYPE=factory" > .env && npm run example -- --network alastria` |
+| **Scripts NPM (RECOMENDADO)** | Todas (usa cross-env) | `npm run example:factory -- --network <YOUR_CUSTOM_NETWORK>` |
+| cross-env directo | Todas | `npx cross-env DEPLOYMENT_TYPE=factory hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>` |
+| Variable nativa | Linux/macOS | `DEPLOYMENT_TYPE=factory npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>` |
+| PowerShell | Windows | `$env:DEPLOYMENT_TYPE="factory"; npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>` |
+| CMD | Windows | `set DEPLOYMENT_TYPE=factory && npx hardhat run scripts/example-usage.js --network <YOUR_CUSTOM_NETWORK>` |
+| Archivo .env | Todas | `echo "DEPLOYMENT_TYPE=factory" > .env && npm run example -- --network <YOUR_CUSTOM_NETWORK>` |
 
 ### Archivos de Configuración y Deployment
 
@@ -442,7 +444,7 @@ Este proyecto está configurado específicamente para funcionar con la **red Ala
 - [ERC-3643 Standard](https://eips.ethereum.org/EIPS/eip-3643)
 - [OnchainID](https://docs.onchainid.com/)
 - [Hardhat Documentation](https://hardhat.org/docs)
-- [Red Alastria](https://alastria.io/)
+- [Red <YOUR_CUSTOM_NETWORK>](https://<YOUR_CUSTOM_NETWORK>.io/)
 
 ### Comandos de Git y Husky
 
@@ -458,30 +460,30 @@ git config --unset core.hooksPath
 
 #### 🔧 Error de Permisos
 ```bash
-npm run check-permissions -- --network alastria
-npm run debug-roles -- --network alastria
+npm run check-permissions -- --network <YOUR_CUSTOM_NETWORK>
+npm run debug-roles -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 #### 🔧 Problemas de Identidades
 ```bash
-npm run debug-identities -- --network alastria
-npm run cleanup-all -- --network alastria
+npm run debug-identities -- --network <YOUR_CUSTOM_NETWORK>
+npm run cleanup-all -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 #### 🔧 Estado Inconsistente
 ```bash
-npm run diagnosis:factory -- --network alastria
-TARGET_ADDRESS=0x... npm run cleanup-identity -- --network alastria
+npm run diagnosis:factory -- --network <YOUR_CUSTOM_NETWORK>
+TARGET_ADDRESS=0x... npm run cleanup-identity -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 #### 🔧 Verificación General
 ```bash
-npm run verify -- --network alastria
-npm run diagnosis:factory -- --network alastria
+npm run verify -- --network <YOUR_CUSTOM_NETWORK>
+npm run diagnosis:factory -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 ---
 
-**📌 Nota:** Todos los comandos están optimizados para la red Alastria. El script `example-usage.js` es la mejor manera de verificar que todo el sistema T-REX funciona correctamente.
+**📌 Nota:** Todos los comandos están optimizados para la red <YOUR_CUSTOM_NETWORK>. El script `example-usage.js` es la mejor manera de verificar que todo el sistema T-REX funciona correctamente.
 
 ----

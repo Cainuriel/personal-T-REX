@@ -2,15 +2,14 @@
 
 Esta guía te permitirá desplegar un ecosistema completo de tokens de seguridad ERC-3643 usando el framework T-REX.
 
-> ⚠️ **ATENCIÓN:** No hay redes configuradas en el `hardhat.config.ts`. Disponga usted de sus custom networks antes de comenzar.
+> ⚠️ **ATENCIÓN:** No hay redes configuradas en el `hardhat.config.ts`. Disponga usted de su custom network antes de comenzar.
 
 ## 📋 Requisitos Previos
 
 1. **Node.js** (v16 o superior)
-2. **Hardhat** configurado
-3. **Wallet** con fondos para transacciones (gas fees no aplicables en <YOUR_CUSTOM_NETWORK>)
-4. **Red blockchain <YOUR_CUSTOM_NETWORK>** configurada en hardhat.config.ts
-5. **Variables de entorno** configuradas en `.env`
+2. **Hardhat** configurad
+3. **Red blockchain <YOUR_CUSTOM_NETWORK>** configurada en hardhat.config.ts
+4. **Variables de entorno** configuradas en `.env`
 
 ### Configuración de Variables de Entorno
 
@@ -393,20 +392,12 @@ npm run debug-identities -- --network <YOUR_CUSTOM_NETWORK>
 1. **Desplegar:** `npm run deploy:simple -- --network <YOUR_CUSTOM_NETWORK>`
 2. **Verificar:** `npm run diagnosis:factory -- --network <YOUR_CUSTOM_NETWORK>`  
 3. **Probar flujo completo:** `npm run example:factory -- --network <YOUR_CUSTOM_NETWORK>` ⭐
-4. **Mantener:** Scripts de limpieza según necesidad
+4. **Mantenimiento:** Scripts de limpieza según necesidad
 
 ---
 
-**💡 Tip:** El script `example-usage.js` es el más importante ya que demuestra que todo el sistema T-REX funciona correctamente end-to-end, incluyendo transferencias reales entre cuentas independientes.
+El script `example-usage.js` es el más importante ya que demuestra que todo el sistema T-REX funciona correctamente end-to-end, incluyendo transferencias reales entre cuentas independientes.
 
-## 📚 Recursos Adicionales
-
-### Configuración de Red <YOUR_CUSTOM_NETWORK>
-
-Este proyecto está configurado específicamente para funcionar con la **red <YOUR_CUSTOM_NETWORK>**:
-- **Nombre:** `<YOUR_CUSTOM_NETWORK>`
-- **Chain ID:** 2020
-- **RPC:** `http://108.142.237.13:8545`
 
 ### Variables de Entorno Requeridas
 
@@ -433,7 +424,6 @@ Este proyecto está configurado específicamente para funcionar con la **red <YO
 | Archivo | Propósito |
 |---------|-----------|
 | `.env.example` | Plantilla de variables de entorno |
-| `.env` | Variables de entorno personalizadas (crear desde .env.example) |
 | `deployments/factory-deployment-latest.json` | Resultado de deployment usando factory |
 | `deployments/manual-deployment-latest.json` | Resultado de deployment manual |
 | `scripts/README.md` | Documentación detallada de cada script |

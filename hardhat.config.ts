@@ -29,7 +29,8 @@ const config: HardhatUserConfig = {
     debugMode: true,
     outputDir: "./docgen",
     freshOutput: true,
-  },  networks: {
+  },  
+ networks: {
    
     taycan: {
       url: "http://5.250.188.118:8545",
@@ -41,7 +42,16 @@ const config: HardhatUserConfig = {
       timeout: 300000, 
     },
        
-  },
+    alastria: {
+          url: "http://108.142.237.13:8545",
+          accounts: [
+            process.env.ADMIN_WALLET_PRIV_KEY,
+            process.env.INVESTOR1_PRIV_KEY,
+            process.env.INVESTOR2_PRIV_KEY
+          ].filter((key): key is string => !!key),
+    
+        },  
+      },
 };
 
 export default config;

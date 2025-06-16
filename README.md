@@ -434,7 +434,6 @@ El script `example-usage.js` es el más importante ya que demuestra que todo el 
 - [ERC-3643 Standard](https://eips.ethereum.org/EIPS/eip-3643)
 - [OnchainID](https://docs.onchainid.com/)
 - [Hardhat Documentation](https://hardhat.org/docs)
-- [Red <YOUR_CUSTOM_NETWORK>](https://<YOUR_CUSTOM_NETWORK>.io/)
 
 ### Comandos de Git y Husky
 
@@ -473,7 +472,5 @@ npm run diagnosis:factory -- --network <YOUR_CUSTOM_NETWORK>
 ```
 
 ---
-
-**📌 Nota:** Todos los comandos están optimizados para la red <YOUR_CUSTOM_NETWORK>. El script `example-usage.js` es la mejor manera de verificar que todo el sistema T-REX funciona correctamente.
 
 ----

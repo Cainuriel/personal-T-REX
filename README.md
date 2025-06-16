@@ -7,8 +7,8 @@ Esta guía te permitirá desplegar un ecosistema completo de tokens de seguridad
 ## 📋 Requisitos Previos
 
 1. **Node.js** (v16 o superior)
-2. **Hardhat** configurad
-3. **Red blockchain <YOUR_CUSTOM_NETWORK>** configurada en hardhat.config.ts
+2. **Hardhat**
+3. **Red blockchain <YOUR_CUSTOM_NETWORK>** faltante en ```hardhat.config.ts```
 4. **Variables de entorno** configuradas en `.env`
 
 ### Configuración de Variables de Entorno

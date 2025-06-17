@@ -1,6 +1,6 @@
 # 🚀 Guía de Despliegue ERC-3643 T-REX Suite
 
-Esta guía te permitirá desplegar un ecosistema completo de tokens de seguridad ERC-3643 usando el framework T-REX.
+Esta guía te permitirá desplegar un ecosistema completo de tokens de seguridad ERC-3643.
 
 > ⚠️ **ATENCIÓN:** No hay redes configuradas en el `hardhat.config.ts`. Disponga usted de su custom network antes de comenzar.
 

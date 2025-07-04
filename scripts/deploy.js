@@ -217,98 +217,6 @@ async function deployManualStepByStep(deployer, tokenOwner, agent) {
   }
 }
 
-/**
- * Funciones auxiliares para despliegue con factory
- */
-async function deployImplementations(deployer) {
-  console.log("   📦 Desplegando implementaciones de contratos...");
-  
-  const claimTopicsRegistryImplementation = await ethers.deployContract('ClaimTopicsRegistry', deployer);
-  const trustedIssuersRegistryImplementation = await ethers.deployContract('TrustedIssuersRegistry', deployer);
-  const identityRegistryStorageImplementation = await ethers.deployContract('IdentityRegistryStorage', deployer);
-  const identityRegistryImplementation = await ethers.deployContract('IdentityRegistry', deployer);
-  const modularComplianceImplementation = await ethers.deployContract('ModularCompliance', deployer);
-  const tokenImplementation = await ethers.deployContract('Token', deployer);
-  
-  await Promise.all([
-    claimTopicsRegistryImplementation.deployed(),
-    trustedIssuersRegistryImplementation.deployed(),
-    identityRegistryStorageImplementation.deployed(),
-    identityRegistryImplementation.deployed(),
-    modularComplianceImplementation.deployed(),
-    tokenImplementation.deployed()
-  ]);
-  
-  console.log("   ✅ Implementaciones desplegadas");
-  
-  return {
-    claimTopicsRegistryImplementation,
-    trustedIssuersRegistryImplementation,
-    identityRegistryStorageImplementation,
-    identityRegistryImplementation,
-    modularComplianceImplementation,
-    tokenImplementation
-  };
-}
-
-async function deployImplementationAuthority(deployer, implementations) {
-  const trexImplementationAuthority = await ethers.deployContract(
-    'TREXImplementationAuthority',
-    [true, ethers.constants.AddressZero, ethers.constants.AddressZero],
-    deployer
-  );
-  await trexImplementationAuthority.deployed();
-  
-  const versionStruct = {
-    major: 4,
-    minor: 1,
-    patch: 6,
-  };
-  
-  const contractsStruct = {
-    tokenImplementation: implementations.tokenImplementation.address,
-    ctrImplementation: implementations.claimTopicsRegistryImplementation.address,
-    irImplementation: implementations.identityRegistryImplementation.address,
-    irsImplementation: implementations.identityRegistryStorageImplementation.address,
-    tirImplementation: implementations.trustedIssuersRegistryImplementation.address,
-    mcImplementation: implementations.modularComplianceImplementation.address,
-  };
-  
-  await trexImplementationAuthority.connect(deployer).addAndUseTREXVersion(versionStruct, contractsStruct);
-  console.log("   ✅ Autoridad de implementación configurada");
-  
-  return trexImplementationAuthority;
-}
-
-async function deployIdentityFactory(deployer) {
-  const identityImplementation = await new ethers.ContractFactory(
-    OnchainID.contracts.Identity.abi,
-    OnchainID.contracts.Identity.bytecode,
-    deployer,
-  ).deploy(deployer.address, true);
-
-  const identityImplementationAuthority = await new ethers.ContractFactory(
-    OnchainID.contracts.ImplementationAuthority.abi,
-    OnchainID.contracts.ImplementationAuthority.bytecode,
-    deployer,
-  ).deploy(identityImplementation.address);
-
-  const identityFactory = await new ethers.ContractFactory(
-    OnchainID.contracts.Factory.abi, 
-    OnchainID.contracts.Factory.bytecode, 
-    deployer
-  ).deploy(identityImplementationAuthority.address);
-  
-  await Promise.all([
-    identityImplementation.deployed(),
-    identityImplementationAuthority.deployed(),
-    identityFactory.deployed()
-  ]);
-    console.log("   ✅ Factory de identidades desplegado");
-  
-  return identityFactory;
-}
-
 async function saveDeploymentAddresses(deploymentData, filename) {
   const deploymentsDir = path.join(__dirname, '..', 'deployments');
   
@@ -335,7 +243,7 @@ async function saveDeploymentAddresses(deploymentData, filename) {
   console.log(`📁 También disponible en: ${filename}-latest.json`);
 }
 
-// Ejecutar script
+
 main()
   .then(() => process.exit(0))
   .catch((error) => {
